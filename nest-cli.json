@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/gdec-orderhub-etl/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/gdec-orderhub-etl/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/gdec-orderhub-etl",
+  "projects": {
+    "api-gateway": {
+      "type": "application",
+      "root": "apps/api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+      }
+    },
+    "gdec-orderhub-etl": {
+      "type": "application",
+      "root": "apps/gdec-orderhub-etl",
+      "entryFile": "main",
+      "sourceRoot": "apps/gdec-orderhub-etl/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/gdec-orderhub-etl/tsconfig.app.json"
+      }
+    },
+    "tiktok-fetcher": {
+      "type": "application",
+      "root": "apps/tiktok-fetcher",
+      "entryFile": "main",
+      "sourceRoot": "apps/tiktok-fetcher/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/tiktok-fetcher/tsconfig.app.json"
+      }
+    }
+  }
+}
