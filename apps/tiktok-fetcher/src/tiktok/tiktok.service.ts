@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
@@ -9,10 +9,15 @@ import {
     IGetOrderSearchParams,
     IGetOrderSearchResponse,
 } from './tiktok.interface';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class TiktokService {
-    constructor(private configService: ConfigService) {
+    constructor(
+        private configService: ConfigService,
+        @Inject('TIKTOK_TRANSFORMER_SERVICE')
+        private readonly tiktokTransformerClient: ClientProxy
+    ) {
         this.appKey = this.configService.get<string>('TIKTOK_APP_KEY', '');
         this.appSecret = this.configService.get<string>(
             'TIKTOK_APP_SECRET',
@@ -108,13 +113,17 @@ export class TiktokService {
         };
 
         try {
-            const response = await axios.post(url, params.body, {
-                params: queryParams,
-                headers: {
-                    'x-tts-access-token': params.accessToken,
-                    'content-type': 'application/json',
-                },
-            });
+            const response = await axios.post<IGetOrderSearchResponse>(
+                url,
+                params.body,
+                {
+                    params: queryParams,
+                    headers: {
+                        'x-tts-access-token': params.accessToken,
+                        'content-type': 'application/json',
+                    },
+                }
+            );
             return response.data;
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
@@ -165,6 +174,13 @@ export class TiktokService {
                     'content-type': 'application/json',
                 },
             });
+
+            const { data: rawData } = response.data;
+
+            this.tiktokTransformerClient.emit(
+                'tiktok.raw_order_details',
+                rawData
+            );
 
             return response.data;
         } catch (error: unknown) {

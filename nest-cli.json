@@ -36,6 +36,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/tiktok-fetcher/tsconfig.app.json"
       }
+    },
+    "tiktok-transformer": {
+      "type": "application",
+      "root": "apps/tiktok-transformer",
+      "entryFile": "main",
+      "sourceRoot": "apps/tiktok-transformer/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/tiktok-transformer/tsconfig.app.json"
+      }
     }
   }
 }

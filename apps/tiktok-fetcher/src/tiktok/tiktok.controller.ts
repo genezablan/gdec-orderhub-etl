@@ -20,10 +20,9 @@ export class TiktokController {
     }
 
     @MessagePattern('tiktok.fetchOrderDetails')
-    async fetchOrderDetails() {
-        console.log('tiktok.fetchOrderDetails');
+    async fetchOrderDetails(params: { shop_id: string; order_id: string }) {
         const getOrderDetailsParams = {
-            ids: ['578844277904147481'],
+            ids: [params.order_id],
             accessToken:
                 'ROW_63xvpAAAAAAbxSlOaMckKupA_jtmiH8Bu1e1BwOen2iSAZq45HZPSygr528cgnum8TUn_WGyh8ASHzh1wICPW7hqV6vbqA2tN7rUxOfO2oeaJDIL67MqiYnajK9xWSo4dXwmMxsBY9RLf2ktk_UuGHW_kT_MdO0NcoZfMQB0DUUWPFlLk-88Xw',
             shopCipher: 'ROW_MO-qpAAAAADZmK4LJiK7Qvk73nuoNyvo',

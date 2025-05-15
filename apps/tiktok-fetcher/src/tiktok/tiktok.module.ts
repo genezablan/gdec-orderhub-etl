@@ -14,6 +14,15 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
                 },
             },
         ]),
+        ClientsModule.register([
+            {
+                name: 'TIKTOK_TRANSFORMER_SERVICE',
+                transport: Transport.TCP,
+                options: {
+                    port: 3002,
+                },
+            },
+        ]),
     ],
     exports: [TiktokService],
     providers: [TiktokService],
