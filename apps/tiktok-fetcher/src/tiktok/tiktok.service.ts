@@ -19,6 +19,7 @@ export class TiktokService {
             ''
         );
         this.endpoint = this.configService.get<string>('TIKTOK_ENDPOINT', '');
+        console.log('endpoint:', this.endpoint);
         this.orderSearchApi = this.configService.get<string>(
             'TIKTOK_ORDER_SEARCH_API',
             ''
@@ -82,6 +83,8 @@ export class TiktokService {
         const timestamp = Math.floor(Date.now() / 1000);
 
         const url = `${this.endpoint}${this.orderSearchApi}`;
+
+        console.log('URL:', url);
         const sign = this.generateSignature({
             uri: url,
             qs: {

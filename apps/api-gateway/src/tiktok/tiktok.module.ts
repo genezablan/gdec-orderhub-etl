@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ApiGatewayController } from './api-gateway.controller';
-import { ApiGatewayService } from './api-gateway.service';
+import { TiktokService } from './tiktok.service';
+import { TiktokController } from './tiktok.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { TiktokModule } from './tiktok/tiktok.module';
+
 @Module({
     imports: [
         ClientsModule.register([
@@ -14,9 +14,8 @@ import { TiktokModule } from './tiktok/tiktok.module';
                 },
             },
         ]),
-        TiktokModule,
     ],
-    controllers: [ApiGatewayController],
-    providers: [ApiGatewayService],
+    controllers: [TiktokController],
+    providers: [TiktokService],
 })
-export class ApiGatewayModule {}
+export class TiktokModule {}

@@ -171,9 +171,9 @@ export interface IGetOrderSearchParams {
     accessToken: string;
     pageSize: number;
     sortOrder: string;
-    pageToken: string;
-    sortField: string;
-    body: Record<string, any>;
+    pageToken?: string;
+    sortField?: string;
+    body?: Record<string, any>;
 }
 
 export interface IGetOrderDetailsParams {
