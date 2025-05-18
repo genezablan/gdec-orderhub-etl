@@ -5,6 +5,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TiktokService } from './tiktok/tiktok.service';
 import { TiktokModule } from './tiktok/tiktok.module';
 import { ConfigModule } from '@nestjs/config';
+import { HttpClientService } from './http-client/http-client.service';
 
 @Module({
     imports: [
@@ -32,6 +33,6 @@ import { ConfigModule } from '@nestjs/config';
     ],
 
     controllers: [TiktokFetcherController],
-    providers: [TiktokFetcherService, TiktokService],
+    providers: [TiktokFetcherService, TiktokService, HttpClientService],
 })
 export class TiktokFetcherModule {}

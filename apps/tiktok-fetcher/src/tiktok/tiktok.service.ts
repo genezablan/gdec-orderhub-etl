@@ -8,15 +8,17 @@ import {
     IGetOrderDetailsResponse,
     IGetOrderSearchParams,
     IGetOrderSearchResponse,
+    IOrder,
 } from './tiktok.interface';
 import { ClientProxy } from '@nestjs/microservices';
-
+import { HttpClientService } from '../http-client/http-client.service';
 @Injectable()
 export class TiktokService {
     constructor(
         private configService: ConfigService,
         @Inject('TIKTOK_TRANSFORMER_SERVICE')
-        private readonly tiktokTransformerClient: ClientProxy
+        private readonly tiktokTransformerClient: ClientProxy,
+        private httpClientService: HttpClientService
     ) {
         this.appKey = this.configService.get<string>('TIKTOK_APP_KEY', '');
         this.appSecret = this.configService.get<string>(
@@ -89,7 +91,6 @@ export class TiktokService {
 
         const url = `${this.endpoint}${this.orderSearchApi}`;
 
-        console.log('URL:', url);
         const sign = this.generateSignature({
             uri: url,
             qs: {
@@ -166,8 +167,8 @@ export class TiktokService {
             sign,
         };
 
-        try {
-            const response = await axios.get<IGetOrderDetailsResponse>(url, {
+        const response =
+            await this.httpClientService.get<IGetOrderDetailsResponse>(url, {
                 params: queryParams,
                 headers: {
                     'x-tts-access-token': params.accessToken,
@@ -175,27 +176,10 @@ export class TiktokService {
                 },
             });
 
-            const { data: rawData } = response.data;
-
-            this.tiktokTransformerClient.emit(
-                'tiktok.raw_order_details',
-                rawData
-            );
-
-            return response.data;
-        } catch (error: unknown) {
-            if (axios.isAxiosError(error)) {
-                console.error(
-                    'Error fetching order details:',
-                    error.response?.data
-                );
-                throw new Error(
-                    `Failed to fetch order details: ${
-                        error.message || 'Unknown error occurred'
-                    }`
-                );
-            }
-            throw new Error('An unexpected error occurred');
-        }
+        this.tiktokTransformerClient.emit(
+            'tiktok.raw_order_details',
+            response.data.orders
+        );
+        return response;
     }
 }

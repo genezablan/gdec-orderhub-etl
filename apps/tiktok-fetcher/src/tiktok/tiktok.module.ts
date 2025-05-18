@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TiktokService } from './tiktok.service';
 import { TiktokController } from './tiktok.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { HttpClientService } from '../http-client/http-client.service';
 
 @Module({
     imports: [
@@ -25,7 +26,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         ]),
     ],
     exports: [TiktokService],
-    providers: [TiktokService],
+    providers: [TiktokService, HttpClientService],
     controllers: [TiktokController],
 })
 export class TiktokModule {}

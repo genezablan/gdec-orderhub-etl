@@ -183,16 +183,14 @@ export interface IGetOrderDetailsParams {
 }
 
 export interface IGetOrderSearchResponse {
+    code: number;
     data: {
-        code: number;
-        data: {
-            next_page_token: string;
-            orders: IOrder[];
-            total_count: number;
-        };
-        message: string;
-        request_id: string;
+        next_page_token: string;
+        orders: IOrder[];
+        total_count: number;
     };
+    message: string;
+    request_id: string;
 }
 
 export interface IGetOrderDetailsResponse {
