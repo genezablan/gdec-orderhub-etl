@@ -176,10 +176,8 @@ export class TiktokService {
                 },
             });
 
-        this.tiktokTransformerClient.emit(
-            'tiktok.raw_order_details',
-            response.data.orders
-        );
+        const orders = response.data?.orders ?? [];
+        this.tiktokTransformerClient.emit('tiktok.raw_order_details', orders);
         return response;
     }
 }

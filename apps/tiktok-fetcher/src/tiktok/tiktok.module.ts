@@ -3,9 +3,11 @@ import { TiktokService } from './tiktok.service';
 import { TiktokController } from './tiktok.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { HttpClientService } from '../http-client/http-client.service';
+import { DatabaseTiktokModule } from '@app/database-tiktok';
 
 @Module({
     imports: [
+        DatabaseTiktokModule,
         ClientsModule.register([
             {
                 name: 'TIKTOK_FETCHER_SERVICE',
