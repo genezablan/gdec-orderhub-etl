@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { BadRequestException, Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { TiktokService } from './tiktok.service';
 import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
@@ -29,7 +29,7 @@ export class TiktokController {
         const shop = await this.shopsService.findByTiktokShopId(params.shop_id);
 
         if (!shop) {
-            throw new Error('Shop do not exists');
+            throw new BadRequestException('Shop do not exists');
         }
 
         const { access_token, tiktok_shop_cipher } = shop;
