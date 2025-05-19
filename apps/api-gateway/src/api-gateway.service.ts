@@ -1,14 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { Observable } from 'rxjs';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ApiGatewayService {
-    constructor(
-        @Inject('TIKTOK_FETCHER_SERVICE')
-        private readonly tiktokFetcherClient: ClientProxy
-    ) {}
-    getHello(): Observable<any> {
-        return this.tiktokFetcherClient.send('tiktok.fetchOrderDetails', {});
+    constructor() {}
+    getHello(): string {
+        return 'Hello World';
     }
 }

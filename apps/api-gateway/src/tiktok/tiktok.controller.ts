@@ -16,7 +16,6 @@ export class TiktokController {
         @Query('shop_id') shop_id: string,
         @Query('order_id') order_id: string
     ) {
-        console.log('getOrderDetails');
         const orderDetails = this.tiktokService.getOrderDetails({
             shop_id,
             order_id,

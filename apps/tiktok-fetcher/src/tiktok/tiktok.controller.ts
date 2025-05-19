@@ -1,12 +1,13 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { TiktokService } from './tiktok.service';
+import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
 
 @Controller('tiktok')
 export class TiktokController {
     constructor(private readonly tiktokService: TiktokService) {}
 
-    @MessagePattern('tiktok.fetchOrders')
+    @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_ORDER_SEARCH)
     async getOrderSearch(params: { shop_id: string }) {
         const getOrderSearchParams = {
             appKey: '69842a899nvel',
@@ -19,8 +20,8 @@ export class TiktokController {
         return await this.tiktokService.getOrderSearch(getOrderSearchParams);
     }
 
-    @MessagePattern('tiktok.fetchOrderDetails')
-    async fetchOrderDetails(params: { shop_id: string; order_id: string }) {
+    @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_ORDER_DETAILS)
+    async getOrderDetails(params: { shop_id: string; order_id: string }) {
         const getOrderDetailsParams = {
             ids: [params.order_id],
             accessToken:
