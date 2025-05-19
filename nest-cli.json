@@ -28,6 +28,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "database-tiktok": {
+      "type": "library",
+      "root": "libs/database-tiktok",
+      "entryFile": "index",
+      "sourceRoot": "libs/database-tiktok/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/database-tiktok/tsconfig.lib.json"
+      }
+    },
     "gdec-orderhub-etl": {
       "type": "application",
       "root": "apps/gdec-orderhub-etl",

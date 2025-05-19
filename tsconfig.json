@@ -23,6 +23,12 @@
       ],
       "@app/contracts/*": [
         "libs/contracts/src/*"
+      ],
+      "@app/database-tiktok": [
+        "libs/database-tiktok/src"
+      ],
+      "@app/database-tiktok/*": [
+        "libs/database-tiktok/src/*"
       ]
     }
   }
