@@ -16,4 +16,28 @@ export class HttpClientService {
             throw error;
         }
     }
+
+    async post<T>(
+        url: string,
+        data?: any,
+        config?: AxiosRequestConfig
+    ): Promise<T> {
+        try {
+            const response = await axios.post<T>(url, data, config);
+            return response.data;
+        } catch (error: unknown) {
+            if (
+                typeof error === 'object' &&
+                error !== null &&
+                axios.isAxiosError(error)
+            ) {
+                const errData = error.response?.data as
+                    | { message?: string }
+                    | undefined;
+                const errMsg = errData?.message;
+                throw new Error(errMsg || 'Request failed');
+            }
+            throw error;
+        }
+    }
 }

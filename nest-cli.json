@@ -28,6 +28,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "database-scrooge": {
+      "type": "library",
+      "root": "libs/database-scrooge",
+      "entryFile": "index",
+      "sourceRoot": "libs/database-scrooge/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/database-scrooge/tsconfig.lib.json"
+      }
+    },
     "database-tiktok": {
       "type": "library",
       "root": "libs/database-tiktok",

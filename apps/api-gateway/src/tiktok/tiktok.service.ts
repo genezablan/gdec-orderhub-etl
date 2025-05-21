@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
+import { GetOrdersQueryDto } from '@app/contracts/tiktok-fetcher/dto/get-orders-query.dto';
 
 @Injectable()
 export class TiktokService {
@@ -9,7 +10,7 @@ export class TiktokService {
         private tiktokFetchServiceClient: ClientProxy
     ) {}
 
-    getOrders(params: { shop_id: string }) {
+    getOrders(params: GetOrdersQueryDto) {
         return this.tiktokFetchServiceClient.send(
             TIKTOK_FETCHER_PATTERNS.GET_ORDER_SEARCH,
             {

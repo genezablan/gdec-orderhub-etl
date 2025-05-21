@@ -113,8 +113,8 @@ export class TiktokService {
             sign: sign,
         };
 
-        try {
-            const response = await axios.post<IGetOrderSearchResponse>(
+        const response =
+            await this.httpClientService.post<IGetOrderSearchResponse>(
                 url,
                 params.body,
                 {
@@ -125,26 +125,14 @@ export class TiktokService {
                     },
                 }
             );
-            return response.data;
-        } catch (error: unknown) {
-            if (axios.isAxiosError(error)) {
-                console.error(
-                    'Error fetching order search:',
-                    error.response?.data
-                );
-                throw new Error(
-                    `Failed to fetch order search: ${
-                        error.message || 'Unknown error occurred'
-                    }`
-                );
-            }
-            throw new Error('An unexpected error occurred');
-        }
+        return response;
     }
 
-    async getOrderDetails(
-        params: IGetOrderDetailsParams
-    ): Promise<IGetOrderDetailsResponse> {
+    async getOrderDetails(params: {
+        ids: string[];
+        accessToken: string;
+        shopCipher: string;
+    }): Promise<IGetOrderDetailsResponse> {
         const timestamp = Math.floor(Date.now() / 1000);
 
         const url = `${this.endpoint}${this.getOrderDetailsApi}`;
@@ -176,8 +164,6 @@ export class TiktokService {
                 },
             });
 
-        const orders = response.data?.orders ?? [];
-        this.tiktokTransformerClient.emit('tiktok.raw_order_details', orders);
         return response;
     }
 }

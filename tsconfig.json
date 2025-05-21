@@ -24,6 +24,12 @@
       "@app/contracts/*": [
         "libs/contracts/src/*"
       ],
+      "@app/database-scrooge": [
+        "libs/database-scrooge/src"
+      ],
+      "@app/database-scrooge/*": [
+        "libs/database-scrooge/src/*"
+      ],
       "@app/database-tiktok": [
         "libs/database-tiktok/src"
       ],

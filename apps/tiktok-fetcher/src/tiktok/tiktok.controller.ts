@@ -1,5 +1,5 @@
-import { BadRequestException, Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { BadRequestException, Controller, Inject } from '@nestjs/common';
+import { MessagePattern, ClientProxy } from '@nestjs/microservices';
 import { TiktokService } from './tiktok.service';
 import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
 import { ShopsService } from '@app/database-tiktok/shops/shops.service';
@@ -8,16 +8,23 @@ import { ShopsService } from '@app/database-tiktok/shops/shops.service';
 export class TiktokController {
     constructor(
         private readonly tiktokService: TiktokService,
-        private readonly shopsService: ShopsService
+        private readonly shopsService: ShopsService,
+        @Inject('TIKTOK_TRANSFORMER_SERVICE')
+        private readonly tiktokTransformerClient: ClientProxy
     ) {}
 
     @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_ORDER_SEARCH)
     async getOrderSearch(params: { shop_id: string }) {
+        const shop = await this.shopsService.findByTiktokShopId(params.shop_id);
+        if (!shop) {
+            throw new BadRequestException('Shop do not exists');
+        }
+
+        const { access_token, tiktok_shop_cipher } = shop;
+
         const getOrderSearchParams = {
-            appKey: '69842a899nvel',
-            shopCipher: 'ROW_MO-qpAAAAADZmK4LJiK7Qvk73nuoNyvo',
-            accessToken:
-                'ROW_63xvpAAAAAAbxSlOaMckKupA_jtmiH8Bu1e1BwOen2iSAZq45HZPSygr528cgnum8TUn_WGyh8ASHzh1wICPW7hqV6vbqA2tN7rUxOfO2oeaJDIL67MqiYnajK9xWSo4dXwmMxsBY9RLf2ktk_UuGHW_kT_MdO0NcoZfMQB0DUUWPFlLk-88Xw',
+            shopCipher: tiktok_shop_cipher,
+            accessToken: access_token,
             pageSize: 50,
             sortOrder: 'DESC',
         };
@@ -32,14 +39,25 @@ export class TiktokController {
             throw new BadRequestException('Shop do not exists');
         }
 
-        const { access_token, tiktok_shop_cipher } = shop;
+        const { access_token, tiktok_shop_cipher, tiktok_shop_code } = shop;
 
         const getOrderDetailsParams = {
             ids: [params.order_id],
             accessToken: access_token,
             shopCipher: tiktok_shop_cipher,
+            tiktokShopCode: tiktok_shop_code,
         };
 
-        return await this.tiktokService.getOrderDetails(getOrderDetailsParams);
+        const result = await this.tiktokService.getOrderDetails(
+            getOrderDetailsParams
+        );
+
+        if (result.data.orders && result.data.orders.length > 0) {
+            this.tiktokTransformerClient.emit('tiktok.raw_order_details', {
+                orders: result.data.orders,
+                shop: shop,
+            });
+        }
+        return result;
     }
 }

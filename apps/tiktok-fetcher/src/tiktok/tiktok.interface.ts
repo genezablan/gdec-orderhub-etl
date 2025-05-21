@@ -166,7 +166,6 @@ export interface IGenerateSignatureParams {
     body?: Record<string, any>;
 }
 export interface IGetOrderSearchParams {
-    appKey: string;
     shopCipher: string;
     accessToken: string;
     pageSize: number;
@@ -221,6 +220,12 @@ export interface IOrder {
     is_replacement_order: boolean;
     is_sample_order: boolean;
     line_items: {
+        combined_listing_skus: {
+            sku_id: string;
+            sku_count: number;
+            product_id: string;
+            seller_sku: string;
+        }[];
         currency: string;
         display_status: string;
         id: string;
