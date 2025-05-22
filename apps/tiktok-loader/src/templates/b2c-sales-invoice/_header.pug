@@ -1,0 +1,125 @@
+mixin _logo(_package)
+    img(src="https://ebibuckaroo.s3.ap-southeast-1.amazonaws.com/b2b_logo.png")
+
+mixin _store_details
+    table(width="100%" height="100%")
+        tr
+            td
+                table(width="100%")
+                    tr
+                        p #{_package.account_name}
+                    tr
+                        p #{_package.account_full_address}
+                    tr
+                        p www.greatdealscorp.com ; Tel. No. (02) 8-900-1274
+                    tr
+                        p VAT Reg. TIN: #{_package.account_tax_identification_number}
+                    tr
+                        br
+
+mixin _billing
+    div(class="header_left")
+        table(class="customer_details" width="100%")
+            tr
+                td(class="right-padding" width="22%")
+                    p CUSTOMER
+                td(class="right-padding" width="1%")
+                    p :
+                td(class="right-padding" width="77%")
+                    p #{_package.billing_address.full_name}
+            tr
+                td
+                    p ADDRESS
+                td
+                    p :
+                td
+                    p #{_package.billing_address.full_address}
+            tr
+                td
+                    p TIN
+                td
+                    p :
+                td
+                    if (_package.billing_address.tax_identification_number)
+                        p #{_package.billing_address.tax_identification_number}
+                    else
+                        p &nbsp;
+            tr
+                td
+                    p BUS. STYLE/NAME
+                td
+                    p :
+                td
+                    p &nbsp;
+            tr
+                td
+                    p DELIVERED TO
+                td
+                    p :
+                td
+                    if (_package.shipping_address.full_address === _package.billing_address.full_address)
+                        p Same as address
+                    else
+                        p #{_package.shipping_address.full_address}
+    div(class="header_right")
+        table(class="customer_details" width="100%")
+            tr
+                td(class="right-padding" width="30%")
+                    p DATE
+                td(class="right-padding" width="70%")
+                    p : #{_package.invoice_printed_date}
+            tr
+                td
+                    p P.O. No.
+                td
+                    p : #{_package.order_number}
+            tr
+                td
+                    p TERMS
+                td
+                    p : #{_package.payment_method}
+            tr
+                td
+                    p PAGE No.
+                td
+                    p : #{_package.page_number} of #{_package.total_pages}
+
+table(width="100%")
+    tr
+        th(width="12.67%")
+        th(width="87.33%")
+    tr
+        td
+            div(class="logo")
+                +_logo(_package)
+        td
+            div(class="store-details") 
+                +_store_details(_package)
+
+div(class="billing")
+    div(class="header_left")
+        table(width="100%")
+            tr
+                td(class="right-padding" width="22%")
+                    br
+                td(class="right-padding" width="1%")
+                    br
+                td(class="right-padding" width="77%")
+                    br
+    div(class="header_right")
+        table( width="100%")
+            tr
+                td(class="right-padding" width="30%")
+                    br
+                td(class="right-padding" width="70%")
+                    br
+            tr
+                td
+                    p &nbsp; S.I. No.
+                td
+                    p : #{_package.sequence_number}
+    table(width="100%")
+        tr
+            td(class="sales-invoice middle")
+                p #{document_type}
+    +_billing

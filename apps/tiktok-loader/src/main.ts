@@ -1,14 +1,14 @@
 import { NestFactory } from '@nestjs/core';
-import { TiktokFetcherModule } from './tiktok-fetcher.module';
+import { TiktokLoaderModule } from './tiktok-loader.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 
 async function bootstrap() {
     const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-        TiktokFetcherModule,
+        TiktokLoaderModule,
         {
             transport: Transport.TCP,
             options: {
-                port: 3001,
+                port: 3003,
             },
         }
     );

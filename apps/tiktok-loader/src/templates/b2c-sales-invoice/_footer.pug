@@ -1,0 +1,202 @@
+mixin _notes
+    table(class="outlined" width="100%")
+        tr
+            td
+                p Please make check payable to <b>GREAT DEALS E-COMMERCE CORP</b>.
+    p &nbsp;
+    table(class="outlined" width="100%")
+        tr
+            td
+                p NOTES:
+        tr
+            td 
+                ul
+                    li Responsibility of <b>GREAT DEALS E-COMMERCE CORP</b> ceases when goods are received in good condition.
+                    li The company reserves the right to charge interest at the rate stated on the Contract signed by both parties.
+
+mixin _signatures
+    table(class="middle" width="100%")
+        tr
+            td(width="50%")
+                br
+            td(width="50%")
+                br
+        tr
+            td
+                br
+            td
+                br
+        tr
+            td
+                p(class="signature") ________________________________
+            td
+                p(class="signature") ________________________________
+        tr
+            td
+                p ISSUED BY
+            td
+                p DISPATCHED BY
+        tr
+            td
+                br
+            td
+                br
+        tr
+            td
+                br
+            td
+                br
+        tr
+            td
+                p(class="signature") ________________________________
+            td
+                p(class="signature") ________________________________
+        tr
+            td
+                p CHECKED BY
+            td
+                p DELIVERED BY
+        tr
+            td
+                br
+            td
+                br
+
+mixin _customer_signature
+    table(class="middle" width="100%")
+        tr
+            td
+                br
+        tr
+            td
+                br
+        tr
+            td
+                br
+        tr
+            td
+                br
+        tr
+            td
+                p(class="signature") ________________________________________
+        tr
+            td
+                p Customer (Printed Name and Signature)
+        tr
+            td
+                br
+        tr
+            td
+                br
+        tr
+            td
+                br
+
+mixin _mode_of_payment
+    table(class="middle mode_of_payment" width="100%")
+        tr
+            td(class="justcolor")
+                br
+            td(class="mode_of_payment")
+                p Mode of Payment
+            td(class="justcolor")
+                br
+        tr
+            td(class="yellow_header")
+                p CHECK NO.
+            td(class="yellow_header")
+                p DATE
+            td(class="yellow_header")
+                p AMOUNT
+        tr
+            td(class="yellow_cell")
+                p CASH &thinsp; &thinsp;&#9634;
+                p CHECK &#9634;
+            td(class="yellow_cell")
+                br
+            td(class="yellow_cell")
+                br
+
+mixin _default_footer
+    hr
+    p &nbsp;
+    p THIS IS A SYSTEM-GENERATED DOCUMENT, NO SIGNATURE REQUIRED
+    p This invoice does not include any additional fees or discounts provided by any third party involved with the sale of items in this document
+    table(class="footer-table")
+        tr
+            td(width="100%")
+                p(class="validity") CAS PERMIT NO. AC-038-122021-000031 ISSUED ON: DECEMBER 3, 2021 ASSIGNED RANGE 122000000001- 122999999999
+
+mixin _products_total(_package)
+    table(class="font10" width="100%")
+        tr
+            td(width="39%")
+                p VATable Sales
+            td(width="35%")
+                br
+            td(class="prices" width="22%")
+                p #{_package.vatable_sales}
+        tr
+            td
+                p VAT-Exempt Sales
+            td
+                br
+            td(class="prices")
+                p #{_package.vat_exempt_sales}
+        tr
+            td
+                p VAT Zero-Rated Sales
+            td
+                br 
+            td(class="prices")
+                p #{_package.vat_zero_rated_sales}
+        tr
+            td(class="padding3")
+                p Sub-Total
+            td
+                br 
+            td(class="prices padding3 top-border")
+                p #{_package.vatable_sales}
+        tr
+            td
+                br
+            td
+                p Less: Discount
+            td(class="prices")
+                p #{_package.total_discount}
+        tr
+            td
+                br
+            td(class="padding3")
+                p Sub-Total Net
+            td(class="prices padding3 top-border")
+                p #{_package.subtotal_net}
+        tr
+            td
+                br
+            td
+                p VAT Amount
+            td(class="prices")
+                p #{_package.vat_amount}
+        tr
+            td
+                br
+            td(class="padding3 emphasize")
+                p TOTAL AMOUNT DUE
+            td(class="emphasize prices top-border double-border")
+                p #{_package.amount_due}
+
+mixin _permit
+    hr
+    div(class="left_column")
+        +_notes
+    div(class="right_column")
+        +_products_total(_package)
+    p &nbsp;
+    +_default_footer
+
+div(class="permit")
+    if (_package.page_number === _package.total_pages)
+        +_permit
+    else
+        +_default_footer

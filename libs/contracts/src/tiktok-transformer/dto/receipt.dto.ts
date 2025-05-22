@@ -29,7 +29,11 @@ export class Package {
     account_name: string;
     account_full_address: string;
     account_tax_identification_number: string;
-    invoice_printed_date: string;
+    invoice_printed_date: string = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: '2-digit',
+    });
     order_number: string;
     payment_method: string;
     vatable_sales: number;

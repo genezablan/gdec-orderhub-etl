@@ -10,15 +10,6 @@ import { DatabaseTiktokModule } from '@app/database-tiktok';
         DatabaseTiktokModule,
         ClientsModule.register([
             {
-                name: 'TIKTOK_FETCHER_SERVICE',
-                transport: Transport.TCP,
-                options: {
-                    port: 3001,
-                },
-            },
-        ]),
-        ClientsModule.register([
-            {
                 name: 'TIKTOK_TRANSFORMER_SERVICE',
                 transport: Transport.TCP,
                 options: {

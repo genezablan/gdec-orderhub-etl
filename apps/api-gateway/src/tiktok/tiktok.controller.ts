@@ -1,8 +1,9 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { TiktokService } from './tiktok.service';
-import { GetOrdersQueryDto } from '@app/contracts/tiktok-fetcher/dto/get-orders-query.dto';
-import { GetOrderDetailsQueryDto } from '@app/contracts/tiktok-fetcher/dto/get-order-details-query.dt';
-
+import {
+    GetOrdersQueryDto,
+    GetOrderDetailsQueryDto,
+} from '@app/contracts/tiktok-fetcher/dto/';
 @Controller('tiktok')
 export class TiktokController {
     constructor(private readonly tiktokService: TiktokService) {}

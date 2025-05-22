@@ -5,10 +5,16 @@ import { ReceiptDto } from '@app/contracts/tiktok-transformer/dto/';
 @Injectable()
 export class ReceiptService {
     transformRawOrderDetails(raw: RawOrderDetailsDto): ReceiptDto[] {
+        const parseAmount = (value: string | number | undefined): number => {
+            const num =
+                typeof value === 'string' ? parseFloat(value) : Number(value);
+            return isNaN(num) ? 0 : Math.round(num * 100) / 100;
+        };
+
         // Map each order to a ReceiptDto (with all required fields)
         return raw.orders.map((order, idx) => {
             const billingAddress = {
-                full_name: order.recipient_address.first_name,
+                full_name: order.recipient_address.name,
                 address_line1: order.recipient_address.address_line1,
                 address_line2: order.recipient_address.address_line2,
                 city: '', // Map if available
@@ -25,34 +31,40 @@ export class ReceiptService {
                     .join(', '),
             };
             const shippingAddress = { ...billingAddress };
-            const items = Array.isArray(order.line_items)
-                ? order.line_items.map((item: Record<string, any>) => ({
-                      shop_sku:
-                          typeof item.shop_sku === 'string'
-                              ? item.shop_sku
-                              : '',
-                      variation_sku:
-                          typeof item.variation_sku === 'string'
-                              ? item.variation_sku
-                              : '',
-                      item_name:
-                          typeof item.item_name === 'string'
-                              ? item.item_name
-                              : '',
-                      quantity:
-                          typeof item.quantity === 'number' ? item.quantity : 1,
-                      item_price:
-                          typeof item.price === 'number' ? item.price : 0,
-                      store_discount:
-                          typeof item.store_discount === 'number'
-                              ? item.store_discount
-                              : 0,
-                      total_actual_price:
-                          typeof item.total_actual_price === 'number'
-                              ? item.total_actual_price
-                              : 0,
-                  }))
-                : [];
+            const items = order.line_items.map(item => {
+                const item_price = parseAmount(item.original_price);
+                const platform_discount = parseAmount(item.platform_discount);
+                const seller_discount = parseAmount(item.seller_discount);
+                const store_discount = platform_discount + seller_discount;
+                return {
+                    shop_sku:
+                        typeof item.sku_id === 'string' ? item.sku_id : '',
+                    variation_sku:
+                        typeof item.seller_sku === 'string'
+                            ? item.seller_sku
+                            : '',
+                    item_name:
+                        typeof item.product_name === 'string'
+                            ? item.product_name
+                            : '',
+                    quantity: 1,
+                    item_price,
+                    store_discount,
+                    total_actual_price:
+                        Math.round((item_price - store_discount) * 100) / 100,
+                };
+            });
+            const total_net_amount =
+                Math.round(
+                    items.reduce(
+                        (sum, item) => sum + item.total_actual_price,
+                        0
+                    ) * 100
+                ) / 100;
+            const vatable_sales =
+                Math.round((total_net_amount / 1.12) * 100) / 100;
+            const vat_amount = Math.round(vatable_sales * 0.12 * 100) / 100;
+
             return {
                 account: raw.shop.tiktok_shop_code,
                 platform: order.commerce_platform,
@@ -69,13 +81,12 @@ export class ReceiptService {
                 invoice_printed_date: '',
                 order_number: order.id,
                 payment_method: order.payment_method_name,
-                vatable_sales: 0,
                 vat_exempt_sales: 0,
                 vat_zero_rated_sales: 0,
                 total_discount: 0,
                 subtotal_net: 0,
-                vat_amount: 0,
                 amount_due: Number(order.payment?.total_amount) || 0,
+                total_net_amount,
                 packages: [
                     {
                         sequence_number: String(idx + 1),
@@ -90,12 +101,12 @@ export class ReceiptService {
                         invoice_printed_date: '',
                         order_number: order.id,
                         payment_method: order.payment_method_name,
-                        vatable_sales: 0,
+                        vatable_sales: vatable_sales,
                         vat_exempt_sales: 0,
                         vat_zero_rated_sales: 0,
                         total_discount: 0,
-                        subtotal_net: 0,
-                        vat_amount: 0,
+                        subtotal_net: vatable_sales,
+                        vat_amount: vat_amount,
                         amount_due: Number(order.payment?.total_amount) || 0,
                     },
                 ],

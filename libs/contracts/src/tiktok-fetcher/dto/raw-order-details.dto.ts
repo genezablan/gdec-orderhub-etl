@@ -16,6 +16,7 @@ export interface RawOrderDetailsDto {
             region_code: string;
             first_name: string;
             phone_number: string;
+            name: string;
         };
         payment: {
             shipping_fee: string;
@@ -25,7 +26,29 @@ export interface RawOrderDetailsDto {
         payment_method_name: string;
         create_time: number;
         update_time: number;
-        line_items: Array<any>;
+        line_items: Array<{
+            currency: string;
+            display_status: string;
+            id: string;
+            is_gift: boolean;
+            original_price: string;
+            package_id: string;
+            package_status: string;
+            platform_discount: string;
+            product_id: string;
+            product_name: string;
+            rts_time: number;
+            sale_price: string;
+            seller_discount: string;
+            seller_sku: string;
+            shipping_provider_id: string;
+            shipping_provider_name: string;
+            sku_id: string;
+            sku_image: string;
+            sku_name: string;
+            sku_type: string;
+            tracking_number: string;
+        }>;
         // ...other order fields
     }>;
 }
