@@ -19,7 +19,7 @@ export class OrderDetailsController {
     ) {
         console.log(
             '[OrderDetailsController] Received tiktok.transformed_order_details:',
-            payload
+            JSON.stringify(payload)
         );
 
         if (payload?.orders?.length) {
@@ -29,8 +29,6 @@ export class OrderDetailsController {
                 // Save items if present
                 if (order.items && order.items.length) {
                     for (const item of order.items) {
-                        item.orderId = savedOrder.orderId;
-                        item.shopId = savedOrder.shopId;
                         await this.tiktokOrderItemService.create(item);
                     }
                 }

@@ -39,10 +39,29 @@ export class TiktokOrderItemService {
         return null;
     }
 
-    create(data: Partial<TiktokOrderItem>) {
+    async create(data: Partial<TiktokOrderItem>) {
         this.logger.log(`Creating order item: ${JSON.stringify(data)}`);
-        return this.repo.save({
-            ...data,
-        });
+        try {
+            return await this.repo.save({ ...data });
+        } catch (error) {
+            if (error?.code === '23505') {
+                this.logger.warn(
+                    `Duplicate key error ignored for order item. Details: ${JSON.stringify(
+                        {
+                            lineItemId: data.lineItemId,
+                            orderId: data.orderId,
+                            shopId: data.shopId,
+                            error: error.detail || error.message,
+                        }
+                    )}`
+                );
+                return null;
+            }
+            this.logger.error(
+                `Error creating order item: ${JSON.stringify(data)} | Error: ${error.message}`,
+                error.stack
+            );
+            throw error;
+        }
     }
 }

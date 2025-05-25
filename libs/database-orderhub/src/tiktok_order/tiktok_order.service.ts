@@ -12,10 +12,28 @@ export class TiktokOrderService {
         private readonly repo: Repository<TiktokOrder>
     ) {}
 
-    create(data: Partial<TiktokOrderDto>) {
+    async create(data: Partial<TiktokOrderDto>) {
         this.logger.log(`Creating order: ${JSON.stringify(data)}`);
-        return this.repo.save({
-            ...data,
-        });
+        try {
+            return await this.repo.save({ ...data });
+        } catch (error) {
+            if (error?.code === '23505') {
+                this.logger.warn(
+                    `Duplicate key error ignored for order. Details: ${JSON.stringify(
+                        {
+                            orderId: data.orderId,
+                            shopId: data.shopId,
+                            error: error.detail || error.message,
+                        }
+                    )}`
+                );
+                return null;
+            }
+            this.logger.error(
+                `Error creating order: ${JSON.stringify(data)} | Error: ${error.message}`,
+                error.stack
+            );
+            throw error;
+        }
     }
 }

@@ -2,7 +2,7 @@ import { IsString, IsOptional, IsNumber, IsDate } from 'class-validator';
 
 export class TiktokOrderItemDto {
     @IsString()
-    id: string;
+    lineItemId: string;
 
     @IsString()
     orderId: string;
@@ -85,4 +85,36 @@ export class TiktokOrderItemDto {
     @IsOptional()
     @IsDate()
     updatedAt?: Date;
+
+    @IsOptional()
+    @IsString()
+    currency?: string;
+
+    @IsOptional()
+    @IsString()
+    displayStatus?: string;
+
+    @IsOptional()
+    @IsNumber()
+    isGift?: boolean;
+
+    @IsOptional()
+    @IsString()
+    packageId?: string;
+
+    @IsOptional()
+    @IsString()
+    packageStatus?: string;
+
+    @IsOptional()
+    @IsNumber()
+    rtsTime?: number;
+
+    @IsOptional()
+    @IsString()
+    sellerSku?: string;
+
+    @IsOptional()
+    @IsString()
+    skuType?: string;
 }

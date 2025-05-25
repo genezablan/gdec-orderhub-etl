@@ -5,36 +5,23 @@ export interface RawOrderDetailsDto {
     };
     orders: Array<{
         id: string;
+        buyer_email: string;
+        buyer_message: string;
+        cancel_order_sla_time: number;
+        collection_due_time: number;
+        collection_time: number;
         commerce_platform: string;
-        recipient_address: {
-            address_detail: string;
-            address_line1: string;
-            address_line2: string;
-            address_line3: string;
-            address_line4: string;
-            postal_code: string;
-            region_code: string;
-            phone_number: string;
-            name: string;
-            district_info?: Array<{
-                address_level: string;
-                address_level_name: string;
-                address_name: string;
-            }>;
-            first_name?: string;
-            first_name_local_script?: string;
-            full_address?: string;
-            last_name?: string;
-            last_name_local_script?: string;
-        };
-        payment: {
-            shipping_fee: string;
-            sub_total: string;
-            total_amount: string;
-        };
-        payment_method_name: string;
         create_time: number;
-        update_time: number;
+        delivery_option_id: string;
+        delivery_option_name: string;
+        delivery_time: number;
+        delivery_type: string;
+        fulfillment_type: string;
+        has_updated_recipient_address: boolean;
+        is_cod: boolean;
+        is_on_hold_order: boolean;
+        is_replacement_order: boolean;
+        is_sample_order: boolean;
         line_items: Array<{
             currency: string;
             display_status: string;
@@ -58,6 +45,46 @@ export interface RawOrderDetailsDto {
             sku_type: string;
             tracking_number: string;
         }>;
+        packages: Array<{
+            id: string;
+        }>;
+        paid_time: number;
+        payment: {
+            currency: string;
+            original_shipping_fee: string;
+            original_total_product_price: string;
+            platform_discount: string;
+            seller_discount: string;
+            shipping_fee: string;
+            shipping_fee_cofunded_discount: string;
+            shipping_fee_platform_discount: string;
+            shipping_fee_seller_discount: string;
+            sub_total: string;
+            tax: string;
+            total_amount: string;
+        };
+        payment_method_name: string;
+        recipient_address: {
+            address_detail: string;
+            address_line1: string;
+            address_line2: string;
+            address_line3: string;
+            address_line4: string;
+            postal_code: string;
+            region_code: string;
+            phone_number: string;
+            name: string;
+            district_info?: Array<{
+                address_level: string;
+                address_level_name: string;
+                address_name: string;
+            }>;
+            first_name?: string;
+            first_name_local_script?: string;
+            full_address?: string;
+            last_name?: string;
+            last_name_local_script?: string;
+        };
         rts_sla_time: number;
         rts_time: number;
         shipping_due_time: number;
@@ -67,6 +94,7 @@ export interface RawOrderDetailsDto {
         status: string;
         tracking_number: string;
         tts_sla_time: number;
+        update_time: number;
         user_id: string;
         warehouse_id: string;
         // ...other order fields

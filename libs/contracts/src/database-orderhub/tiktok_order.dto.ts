@@ -264,4 +264,12 @@ export class TiktokOrderDto {
 
     @IsOptional()
     items?: TiktokOrderItemDto[];
+
+    @IsOptional()
+    @IsNumber()
+    paidTime?: number;
+
+    @IsOptional()
+    @IsString()
+    addressLine1?: string;
 }

@@ -13,8 +13,8 @@ import { TiktokOrder } from '../tiktok_order/tiktok_order.entity'; // adjust pat
 @Entity('tiktok_order_items')
 @Index(['shopId', 'orderId', 'lineItemId'], { unique: true })
 export class TiktokOrderItem {
-    @PrimaryGeneratedColumn('uuid', { name: 'uuid' })
-    uuid: string;
+    @PrimaryGeneratedColumn('uuid', { name: 'id' })
+    id: string;
 
     @Column({ name: 'shop_id', type: 'varchar' })
     shopId: string;

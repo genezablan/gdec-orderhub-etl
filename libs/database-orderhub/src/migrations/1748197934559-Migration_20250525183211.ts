@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class Initial1748192451411 implements MigrationInterface {
-    name = 'Initial1748192451411'
+export class Migration202505251832111748197934559 implements MigrationInterface {
+    name = 'Migration202505251832111748197934559'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "tiktok_order_items" ("uuid" uuid NOT NULL DEFAULT uuid_generate_v4(), "shop_id" character varying NOT NULL, "order_id" character varying NOT NULL, "line_item_id" character varying NOT NULL, "currency" character varying, "display_status" character varying, "is_gift" boolean NOT NULL DEFAULT false, "original_price" numeric(10,2), "package_id" character varying, "package_status" character varying, "platform_discount" numeric(10,2), "product_id" character varying, "product_name" character varying, "rts_time" bigint, "sale_price" numeric(10,2), "seller_discount" numeric(10,2), "seller_sku" character varying, "shipping_provider_id" character varying, "shipping_provider_name" character varying, "sku_id" character varying, "sku_image" text, "sku_name" character varying, "sku_type" character varying, "tracking_number" character varying, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_618bf7b4b2ff48be554045c86c3" PRIMARY KEY ("uuid"))`);
