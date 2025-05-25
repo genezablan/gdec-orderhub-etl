@@ -12,15 +12,12 @@ export class ReceiptController {
         private readonly tiktokLoaderClient: ClientProxy // Assuming you have a ClientProxy instance for tiktok-loader
     ) {}
 
-    @MessagePattern('tiktok.raw_order_details')
+    @MessagePattern('tiktok.raw_order_detailsss')
     transformRawOrderDetails(
         @Payload() payload: RawOrderDetailsDto
     ): ReceiptDto[] {
         const transformedOrderDetails =
             this.receiptService.transformRawOrderDetails(payload);
-
-        console.log('transformedOrderDetails:', transformedOrderDetails);
-
         if (transformedOrderDetails.length > 0) {
             console.log('Emitting transformed receipt to tiktok-loader');
             this.tiktokLoaderClient.emit(

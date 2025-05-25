@@ -6,7 +6,12 @@
     "private": true,
     "license": "UNLICENSED",
     "scripts": {
-        "start:all": "concurrently \"npm run start:service-a\" \"npm run start:service-b\"",
+        "typeorm": "typeorm-ts-node-commonjs",
+        "start:api-gateway": "nest start api-gateway --watch",
+        "start:tiktok-fetcher": "nest start tiktok-fetcher --watch",
+        "start:tiktok-loader": "nest start tiktok-loader --watch",
+        "start:tiktok-transformer": "nest start tiktok-transformer --watch",
+        "start:all": "concurrently \"npm run start:api-gateway\" \"npm run start:tiktok-fetcher\" \"npm run start:tiktok-loader\" \"npm run start:tiktok-transformer\"",
         "build": "nest build",
         "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
         "start": "nest start",
@@ -18,7 +23,9 @@
         "test:watch": "jest --watch",
         "test:cov": "jest --coverage",
         "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-        "test:e2e": "jest --config ./apps/gdec-orderhub-etl/test/jest-e2e.json"
+        "test:e2e": "jest --config ./apps/gdec-orderhub-etl/test/jest-e2e.json",
+        "generate-migration": "ts-node scripts/database_orderhub_migration.ts",
+        "run-migration": "ts-node scripts/run_migration.ts"
     },
     "dependencies": {
         "@nestjs/common": "^11.0.1",
@@ -53,6 +60,7 @@
         "@types/node": "^22.10.7",
         "@types/supertest": "^6.0.2",
         "concurrently": "^9.1.2",
+        "dotenv-cli": "^8.0.0",
         "eslint": "^9.18.0",
         "eslint-config-prettier": "^10.0.1",
         "eslint-plugin-prettier": "^5.2.2",
@@ -65,6 +73,7 @@
         "ts-loader": "^9.5.2",
         "ts-node": "^10.9.2",
         "tsconfig-paths": "^4.2.0",
+        "typeorm-ts-node-commonjs": "^0.3.20",
         "typescript": "^5.7.3",
         "typescript-eslint": "^8.20.0"
     },
@@ -90,6 +99,7 @@
         ],
         "moduleNameMapper": {
             "^@app/contracts(|/.*)$": "<rootDir>/libs/contracts/src/$1",
+            "^@app/database-orderhub(|/.*)$": "<rootDir>/libs/database-orderhub/src/$1",
             "^@app/database-scrooge(|/.*)$": "<rootDir>/libs/database-scrooge/src/$1",
             "^@app/database-tiktok(|/.*)$": "<rootDir>/libs/database-tiktok/src/$1"
         }

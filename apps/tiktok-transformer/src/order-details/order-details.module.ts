@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ReceiptService } from './receipt.service';
-import { ReceiptController } from './receipt.controller';
+import { OrderDetailsController } from './order-details.controller';
+import { OrderDetailsService } from './order-details.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { OrderDetailsModule } from '../order-details/order-details.module';
 
 @Module({
     imports: [
-        OrderDetailsModule,
         ClientsModule.register([
             {
                 name: 'TIKTOK_LOADER_SERVICE',
@@ -17,7 +15,8 @@ import { OrderDetailsModule } from '../order-details/order-details.module';
             },
         ]),
     ],
-    controllers: [ReceiptController],
-    providers: [ReceiptService],
+    controllers: [OrderDetailsController],
+    providers: [OrderDetailsService],
+    exports: [OrderDetailsService],
 })
-export class ReceiptModule {}
+export class OrderDetailsModule {}

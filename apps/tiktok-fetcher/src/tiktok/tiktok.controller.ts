@@ -3,12 +3,13 @@ import { MessagePattern, ClientProxy } from '@nestjs/microservices';
 import { TiktokService } from './tiktok.service';
 import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
 import { ShopsService } from '@app/database-tiktok/shops/shops.service';
-
+import { CountersService } from '@app/database-scrooge/counters/counters.service';
 @Controller('tiktok')
 export class TiktokController {
     constructor(
         private readonly tiktokService: TiktokService,
         private readonly shopsService: ShopsService,
+        private readonly countersService: CountersService,
         @Inject('TIKTOK_TRANSFORMER_SERVICE')
         private readonly tiktokTransformerClient: ClientProxy
     ) {}

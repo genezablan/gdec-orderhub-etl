@@ -8,8 +8,8 @@ export class Platform {
     @Prop() active: boolean;
     @Prop() ready_for_sync: boolean;
     @Prop() deleted: boolean;
-    @Prop() deleted_at: Date | null;
-    @Prop() deleted_by: string | null;
+    @Prop({ type: Date, default: null }) deleted_at: Date | null;
+    @Prop({ type: String, default: null }) deleted_by: string | null;
     @Prop() name: string;
     @Prop() shop_name: string;
     @Prop() shop_url: string;

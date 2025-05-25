@@ -24,6 +24,12 @@
       "@app/contracts/*": [
         "libs/contracts/src/*"
       ],
+      "@app/database-orderhub": [
+        "libs/database-orderhub/src"
+      ],
+      "@app/database-orderhub/*": [
+        "libs/database-orderhub/src/*"
+      ],
       "@app/database-scrooge": [
         "libs/database-scrooge/src"
       ],

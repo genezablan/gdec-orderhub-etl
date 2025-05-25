@@ -9,6 +9,7 @@ import { HttpClientService } from './http-client/http-client.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Shops } from '@app/database-tiktok/shops/shops.entity';
 import { DatabaseTiktokModule } from '@app/database-tiktok';
+import { DatabaseScroogeModule } from '@app/database-scrooge';
 
 @Module({
     imports: [
@@ -43,6 +44,7 @@ import { DatabaseTiktokModule } from '@app/database-tiktok';
             },
         ]),
         TiktokModule,
+        DatabaseScroogeModule,
     ],
 
     controllers: [TiktokFetcherController],

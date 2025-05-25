@@ -6,17 +6,26 @@ export interface RawOrderDetailsDto {
     orders: Array<{
         id: string;
         commerce_platform: string;
-        user_id: string;
         recipient_address: {
+            address_detail: string;
             address_line1: string;
             address_line2: string;
             address_line3: string;
             address_line4: string;
             postal_code: string;
             region_code: string;
-            first_name: string;
             phone_number: string;
             name: string;
+            district_info?: Array<{
+                address_level: string;
+                address_level_name: string;
+                address_name: string;
+            }>;
+            first_name?: string;
+            first_name_local_script?: string;
+            full_address?: string;
+            last_name?: string;
+            last_name_local_script?: string;
         };
         payment: {
             shipping_fee: string;
@@ -49,6 +58,17 @@ export interface RawOrderDetailsDto {
             sku_type: string;
             tracking_number: string;
         }>;
+        rts_sla_time: number;
+        rts_time: number;
+        shipping_due_time: number;
+        shipping_provider: string;
+        shipping_provider_id: string;
+        shipping_type: string;
+        status: string;
+        tracking_number: string;
+        tts_sla_time: number;
+        user_id: string;
+        warehouse_id: string;
         // ...other order fields
     }>;
 }

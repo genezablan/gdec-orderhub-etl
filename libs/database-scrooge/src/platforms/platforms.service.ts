@@ -4,7 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Platform } from './platforms.schema';
 
 @Injectable()
-export class CatsService {
+export class PlatformService {
     constructor(
         @InjectModel(Platform.name) private platformModel: Model<Platform>
     ) {}
