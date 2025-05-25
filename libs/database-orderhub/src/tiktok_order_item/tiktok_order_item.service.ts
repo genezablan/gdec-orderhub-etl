@@ -18,6 +18,10 @@ export class TiktokOrderItemService {
         return this.repo.find({ where });
     }
 
+    async findOne(where: Partial<TiktokOrderItem>) {
+        return this.repo.findOne({ where });
+    }
+
     async findAndUpdate(
         where: Partial<TiktokOrderItem>,
         update: Partial<TiktokOrderItem>
@@ -59,6 +63,46 @@ export class TiktokOrderItemService {
             }
             this.logger.error(
                 `Error creating order item: ${JSON.stringify(data)} | Error: ${error.message}`,
+                error.stack
+            );
+            throw error;
+        }
+    }
+
+    async upsert(
+        where: Partial<TiktokOrderItem>,
+        data: Partial<TiktokOrderItem>
+    ) {
+        this.logger.log(
+            `Upserting order item with criteria: ${JSON.stringify(where)} and data: ${JSON.stringify(data)}`
+        );
+        try {
+            let entity = await this.repo.findOne({ where });
+            if (entity) {
+                // Only update fields that are null or empty string in the existing order item
+                for (const key of Object.keys(data)) {
+                    if (
+                        entity[key] !== null &&
+                        entity[key] !== '' &&
+                        key !== 'updatedAt'
+                    ) {
+                        delete data[key];
+                    }
+                }
+                Object.assign(entity, data);
+                this.logger.log(
+                    `Updating existing order item: ${JSON.stringify(entity)}`
+                );
+                return await this.repo.save(entity);
+            } else {
+                this.logger.log(
+                    `Creating new order item: ${JSON.stringify(data)}`
+                );
+                return await this.repo.save({ ...data });
+            }
+        } catch (error) {
+            this.logger.error(
+                `Error upserting order item: ${JSON.stringify(data)} | Error: ${error.message}`,
                 error.stack
             );
             throw error;

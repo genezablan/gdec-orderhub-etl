@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { TransformedOrderDetailsDto } from '@app/contracts/tiktok-transformer/dto/order-details.dto';
 
@@ -8,6 +8,7 @@ import { ShopsService } from '@app/database-tiktok/shops/shops.service';
 
 @Controller()
 export class OrderDetailsController {
+    private readonly logger = new Logger(OrderDetailsController.name);
     constructor(
         private tiktokOrderService: TiktokOrderService,
         private tiktokOrderItemService: TiktokOrderItemService
@@ -17,19 +18,64 @@ export class OrderDetailsController {
     async handleTransformedOrderDetails(
         @Payload() payload: TransformedOrderDetailsDto
     ) {
-        console.log(
-            '[OrderDetailsController] Received tiktok.transformed_order_details:',
-            JSON.stringify(payload)
+        this.logger.log(
+            `[OrderDetailsController] Received tiktok.transformed_order_details: ${JSON.stringify(payload)}`
         );
 
         if (payload?.orders?.length) {
             for (const order of payload.orders) {
-                // Save order
-                const savedOrder = await this.tiktokOrderService.create(order);
+                // Upsert order: only update fields that are null, always update updatedAt
+                const whereOrder = {
+                    orderId: order.orderId,
+                    shopId: order.shopId,
+                };
+                const updateOrder = { ...order, updatedAt: new Date() };
+                const existingOrder =
+                    await this.tiktokOrderService.findOne(whereOrder);
+                if (existingOrder) {
+                    // Only update fields that are null in the existing order
+                    for (const key of Object.keys(updateOrder)) {
+                        if (
+                            existingOrder[key] !== null &&
+                            key !== 'updatedAt'
+                        ) {
+                            delete updateOrder[key];
+                        }
+                    }
+                    updateOrder.updatedAt = new Date();
+                }
+                const savedOrder = await this.tiktokOrderService.upsert(
+                    whereOrder,
+                    updateOrder
+                );
                 // Save items if present
                 if (order.items && order.items.length) {
                     for (const item of order.items) {
-                        await this.tiktokOrderItemService.create(item);
+                        const whereItem = {
+                            lineItemId: item.lineItemId,
+                            orderId: item.orderId,
+                            shopId: item.shopId,
+                        };
+                        const updateItem = { ...item, updatedAt: new Date() };
+                        const existingItem =
+                            await this.tiktokOrderItemService.findOne(
+                                whereItem
+                            );
+                        if (existingItem) {
+                            for (const key of Object.keys(updateItem)) {
+                                if (
+                                    existingItem[key] !== null &&
+                                    key !== 'updatedAt'
+                                ) {
+                                    delete updateItem[key];
+                                }
+                            }
+                            updateItem.updatedAt = new Date();
+                        }
+                        await this.tiktokOrderItemService.upsert(
+                            whereItem,
+                            updateItem
+                        );
                     }
                 }
             }

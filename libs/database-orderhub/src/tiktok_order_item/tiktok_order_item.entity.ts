@@ -73,8 +73,8 @@ export class TiktokOrderItem {
     @Column({ name: 'product_name', type: 'varchar', nullable: true })
     productName: string;
 
-    @Column({ name: 'rts_time', type: 'bigint', nullable: true })
-    rtsTime: number;
+    @Column({ name: 'rts_time', type: 'timestamp', nullable: true })
+    rtsTime?: Date;
 
     @Column({
         name: 'sale_price',

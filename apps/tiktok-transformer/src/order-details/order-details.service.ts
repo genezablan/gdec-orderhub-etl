@@ -20,14 +20,24 @@ export class OrderDetailsService {
             const orderDto = new TiktokOrderDto();
             orderDto.buyerEmail = order.buyer_email;
             orderDto.buyerMessage = order.buyer_message;
-            orderDto.cancelOrderSlaTime = order.cancel_order_sla_time;
-            orderDto.collectionDueTime = order.collection_due_time;
-            orderDto.collectionTime = order.collection_time;
+            orderDto.cancelOrderSlaTime = order.cancel_order_sla_time
+                ? new Date(order.cancel_order_sla_time * 1000)
+                : undefined;
+            orderDto.collectionDueTime = order.collection_due_time
+                ? new Date(order.collection_due_time * 1000)
+                : undefined;
+            orderDto.collectionTime = order.collection_time
+                ? new Date(order.collection_time * 1000)
+                : undefined;
             orderDto.commercePlatform = order.commerce_platform;
-            orderDto.createTime = order.create_time;
+            orderDto.createTime = order.create_time
+                ? new Date(order.create_time * 1000)
+                : undefined;
             orderDto.deliveryOptionId = order.delivery_option_id;
             orderDto.deliveryOptionName = order.delivery_option_name;
-            orderDto.deliveryTime = order.delivery_time;
+            orderDto.deliveryTime = order.delivery_time
+                ? new Date(order.delivery_time * 1000)
+                : undefined;
             orderDto.deliveryType = order.delivery_type;
             orderDto.fulfillmentType = order.fulfillment_type;
             orderDto.hasUpdatedRecipientAddress =
@@ -110,16 +120,26 @@ export class OrderDetailsService {
                 orderDto.lastNameLocalScript =
                     order.recipient_address.last_name_local_script;
             }
-            orderDto.rtsSlaTime = order.rts_sla_time;
-            orderDto.rtsTime = order.rts_time;
-            orderDto.shippingDueTime = order.shipping_due_time;
+            orderDto.rtsSlaTime = order.rts_sla_time
+                ? new Date(order.rts_sla_time * 1000)
+                : undefined;
+            orderDto.rtsTime = order.rts_time
+                ? new Date(order.rts_time * 1000)
+                : undefined;
+            orderDto.shippingDueTime = order.shipping_due_time
+                ? new Date(order.shipping_due_time * 1000)
+                : undefined;
             orderDto.shippingProvider = order.shipping_provider;
             orderDto.shippingProviderId = order.shipping_provider_id;
             orderDto.shippingType = order.shipping_type;
             orderDto.status = order.status;
             orderDto.trackingNumber = order.tracking_number;
-            orderDto.ttsSlaTime = order.tts_sla_time;
-            orderDto.updateTime = order.update_time;
+            orderDto.ttsSlaTime = order.tts_sla_time
+                ? new Date(order.tts_sla_time * 1000)
+                : undefined;
+            orderDto.updateTime = order.update_time
+                ? new Date(order.update_time * 1000)
+                : undefined;
             orderDto.userId = order.user_id;
             orderDto.warehouseId = order.warehouse_id;
             // Map line items
@@ -146,7 +166,9 @@ export class OrderDetailsService {
                 itemDto.isGift = item.is_gift;
                 itemDto.packageId = item.package_id;
                 itemDto.packageStatus = item.package_status;
-                itemDto.rtsTime = item.rts_time;
+                itemDto.rtsTime = item.rts_time
+                    ? new Date(item.rts_time * 1000)
+                    : undefined;
                 itemDto.sellerSku = item.seller_sku;
                 itemDto.skuType = item.sku_type;
                 items.push(itemDto);

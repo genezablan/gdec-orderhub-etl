@@ -5,6 +5,7 @@ import {
     IsBoolean,
     IsDate,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 import { TiktokOrderItemDto } from './tiktok_order_item.dto';
 
@@ -27,24 +28,24 @@ export class TiktokOrderDto {
     buyerMessage?: string;
 
     @IsOptional()
-    @IsNumber()
-    cancelOrderSlaTime?: number;
+    @Type(() => Date)
+    cancelOrderSlaTime?: Date;
 
     @IsOptional()
-    @IsNumber()
-    collectionDueTime?: number;
+    @Type(() => Date)
+    collectionDueTime?: Date;
 
     @IsOptional()
-    @IsNumber()
-    collectionTime?: number;
+    @Type(() => Date)
+    collectionTime?: Date;
 
     @IsOptional()
     @IsString()
     commercePlatform?: string;
 
     @IsOptional()
-    @IsNumber()
-    createTime?: number;
+    @Type(() => Date)
+    createTime?: Date;
 
     @IsOptional()
     @IsString()
@@ -55,8 +56,8 @@ export class TiktokOrderDto {
     deliveryOptionName?: string;
 
     @IsOptional()
-    @IsNumber()
-    deliveryTime?: number;
+    @Type(() => Date)
+    deliveryTime?: Date;
 
     @IsOptional()
     @IsString()
@@ -203,16 +204,16 @@ export class TiktokOrderDto {
     regionCode?: string;
 
     @IsOptional()
-    @IsNumber()
-    rtsSlaTime?: number;
+    @Type(() => Date)
+    rtsSlaTime?: Date;
 
     @IsOptional()
-    @IsNumber()
-    rtsTime?: number;
+    @Type(() => Date)
+    rtsTime?: Date;
 
     @IsOptional()
-    @IsNumber()
-    shippingDueTime?: number;
+    @Type(() => Date)
+    shippingDueTime?: Date;
 
     @IsOptional()
     @IsString()
@@ -235,12 +236,12 @@ export class TiktokOrderDto {
     trackingNumber?: string;
 
     @IsOptional()
-    @IsNumber()
-    ttsSlaTime?: number;
+    @Type(() => Date)
+    ttsSlaTime?: Date;
 
     @IsOptional()
-    @IsNumber()
-    updateTime?: number;
+    @Type(() => Date)
+    updateTime?: Date;
 
     @IsOptional()
     @IsString()

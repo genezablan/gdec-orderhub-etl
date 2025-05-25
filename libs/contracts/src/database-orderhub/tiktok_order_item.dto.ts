@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsNumber, IsDate } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class TiktokOrderItemDto {
     @IsString()
@@ -107,8 +108,8 @@ export class TiktokOrderItemDto {
     packageStatus?: string;
 
     @IsOptional()
-    @IsNumber()
-    rtsTime?: number;
+    @Type(() => Date)
+    rtsTime?: Date;
 
     @IsOptional()
     @IsString()

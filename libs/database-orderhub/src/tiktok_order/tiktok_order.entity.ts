@@ -31,20 +31,24 @@ export class TiktokOrder {
     @Column({ name: 'buyer_message', type: 'text', nullable: true })
     buyerMessage: string;
 
-    @Column({ name: 'cancel_order_sla_time', type: 'bigint', nullable: true })
-    cancelOrderSlaTime: number;
+    @Column({
+        name: 'cancel_order_sla_time',
+        type: 'timestamp',
+        nullable: true,
+    })
+    cancelOrderSlaTime?: Date;
 
-    @Column({ name: 'collection_due_time', type: 'bigint', nullable: true })
-    collectionDueTime: number;
+    @Column({ name: 'collection_due_time', type: 'timestamp', nullable: true })
+    collectionDueTime?: Date;
 
-    @Column({ name: 'collection_time', type: 'bigint', nullable: true })
-    collectionTime: number;
+    @Column({ name: 'collection_time', type: 'timestamp', nullable: true })
+    collectionTime?: Date;
 
     @Column({ name: 'commerce_platform', type: 'varchar', nullable: true })
     commercePlatform: string;
 
-    @Column({ name: 'create_time', type: 'bigint', nullable: true })
-    createTime: number;
+    @Column({ name: 'create_time', type: 'timestamp', nullable: true })
+    createTime?: Date;
 
     @Column({ name: 'delivery_option_id', type: 'varchar', nullable: true })
     deliveryOptionId: string;
@@ -52,8 +56,8 @@ export class TiktokOrder {
     @Column({ name: 'delivery_option_name', type: 'varchar', nullable: true })
     deliveryOptionName: string;
 
-    @Column({ name: 'delivery_time', type: 'bigint', nullable: true })
-    deliveryTime: number;
+    @Column({ name: 'delivery_time', type: 'timestamp', nullable: true })
+    deliveryTime?: Date;
 
     @Column({ name: 'delivery_type', type: 'varchar', nullable: true })
     deliveryType: string;
@@ -240,14 +244,14 @@ export class TiktokOrder {
     regionCode: string;
 
     // Shipping Info
-    @Column({ name: 'rts_sla_time', type: 'bigint', nullable: true })
-    rtsSlaTime: number;
+    @Column({ name: 'rts_sla_time', type: 'timestamp', nullable: true })
+    rtsSlaTime?: Date;
 
-    @Column({ name: 'rts_time', type: 'bigint', nullable: true })
-    rtsTime: number;
+    @Column({ name: 'rts_time', type: 'timestamp', nullable: true })
+    rtsTime?: Date;
 
-    @Column({ name: 'shipping_due_time', type: 'bigint', nullable: true })
-    shippingDueTime: number;
+    @Column({ name: 'shipping_due_time', type: 'timestamp', nullable: true })
+    shippingDueTime?: Date;
 
     @Column({ name: 'shipping_provider', type: 'varchar', nullable: true })
     shippingProvider: string;
@@ -264,11 +268,11 @@ export class TiktokOrder {
     @Column({ name: 'tracking_number', type: 'varchar', nullable: true })
     trackingNumber: string;
 
-    @Column({ name: 'tts_sla_time', type: 'bigint', nullable: true })
-    ttsSlaTime: number;
+    @Column({ name: 'tts_sla_time', type: 'timestamp', nullable: true })
+    ttsSlaTime?: Date;
 
-    @Column({ name: 'update_time', type: 'bigint', nullable: true })
-    updateTime: number;
+    @Column({ name: 'update_time', type: 'timestamp', nullable: true })
+    updateTime?: Date;
 
     @Column({ name: 'user_id', type: 'varchar', nullable: true })
     userId: string;
