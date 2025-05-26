@@ -74,6 +74,15 @@
         "tsConfigPath": "apps/tiktok-loader/tsconfig.app.json"
       }
     },
+    "tiktok-receipt": {
+      "type": "application",
+      "root": "apps/tiktok-receipt",
+      "entryFile": "main",
+      "sourceRoot": "apps/tiktok-receipt/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/tiktok-receipt/tsconfig.app.json"
+      }
+    },
     "tiktok-transformer": {
       "type": "application",
       "root": "apps/tiktok-transformer",

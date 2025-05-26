@@ -7,11 +7,12 @@
     "license": "UNLICENSED",
     "scripts": {
         "typeorm": "typeorm-ts-node-commonjs",
+        "start:tiktok-receipt": "nest start tiktok-receipt --watch",
         "start:api-gateway": "nest start api-gateway --watch",
         "start:tiktok-fetcher": "nest start tiktok-fetcher --watch",
         "start:tiktok-loader": "nest start tiktok-loader --watch",
         "start:tiktok-transformer": "nest start tiktok-transformer --watch",
-        "start:all": "concurrently \"npm run start:api-gateway\" \"npm run start:tiktok-fetcher\" \"npm run start:tiktok-loader\" \"npm run start:tiktok-transformer\"",
+        "start:all": "concurrently \"npm run start:api-gateway\" \"npm run start:tiktok-fetcher\" \"npm run start:tiktok-loader\" \"npm run start:tiktok-transformer\" \"npm run start:tiktok-receipt\"",
         "build": "nest build",
         "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
         "start": "nest start",

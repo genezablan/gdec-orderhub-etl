@@ -78,4 +78,11 @@ export class TiktokOrderService {
     async findOne(where: Partial<TiktokOrderDto>) {
         return this.repo.findOne({ where });
     }
+
+    async findOrderWithItems(orderId: string, shopId: string) {
+        return this.repo.findOne({
+            where: { orderId, shopId },
+            relations: ['items'],
+        });
+    }
 }

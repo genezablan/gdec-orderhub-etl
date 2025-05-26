@@ -5,8 +5,20 @@ import {
     TiktokOrderService,
 } from '@app/database-orderhub';
 import { DatabaseOrderhubModule } from '@app/database-orderhub';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 @Module({
-    imports: [DatabaseOrderhubModule],
+    imports: [
+        DatabaseOrderhubModule,
+        ClientsModule.register([
+            {
+                name: 'TIKTOK_RECEIPT_SERVICE',
+                transport: Transport.TCP,
+                options: {
+                    port: 3004,
+                },
+            },
+        ]),
+    ],
     controllers: [OrderDetailsController],
     providers: [],
 })

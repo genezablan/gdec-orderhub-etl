@@ -1,4 +1,4 @@
-import { Controller, Inject } from '@nestjs/common';
+import { Controller, Inject, Logger } from '@nestjs/common';
 import { ClientProxy, MessagePattern, Payload } from '@nestjs/microservices';
 import { RawOrderDetailsDto } from '@app/contracts/tiktok-fetcher/dto/';
 import { OrderDetailsService } from './order-details.service';
@@ -6,6 +6,7 @@ import { TransformedOrderDetailsDto } from '@app/contracts/tiktok-transformer/dt
 
 @Controller()
 export class OrderDetailsController {
+    private readonly logger = new Logger(OrderDetailsController.name);
     constructor(
         private readonly orderDetailsService: OrderDetailsService,
         @Inject('TIKTOK_LOADER_SERVICE')
@@ -16,7 +17,7 @@ export class OrderDetailsController {
     transformRawOrderDetails(
         @Payload() payload: RawOrderDetailsDto
     ): TransformedOrderDetailsDto {
-        console.log(
+        this.logger.log(
             '[OrderDetailsController] Received tiktok.raw_order_details:',
             payload
         );
@@ -24,7 +25,7 @@ export class OrderDetailsController {
             this.orderDetailsService.transformRawOrderDetails(payload);
 
         if (transformedOrderDetails.orders.length > 0) {
-            console.log(
+            this.logger.log(
                 '[OrderDetailsController] Emitting transformed order details to tiktok-loader'
             );
             this.tiktokLoaderClient.emit(
@@ -32,8 +33,6 @@ export class OrderDetailsController {
                 transformedOrderDetails
             );
         }
-
-        console.log(transformedOrderDetails);
         return transformedOrderDetails;
     }
 }

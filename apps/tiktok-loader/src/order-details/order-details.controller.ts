@@ -1,5 +1,5 @@
-import { Controller, Logger } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { Controller, Inject, Logger } from '@nestjs/common';
+import { ClientProxy, MessagePattern, Payload } from '@nestjs/microservices';
 import { TransformedOrderDetailsDto } from '@app/contracts/tiktok-transformer/dto/order-details.dto';
 
 import { TiktokOrderService } from '@app/database-orderhub/tiktok_order/tiktok_order.service';
@@ -11,7 +11,9 @@ export class OrderDetailsController {
     private readonly logger = new Logger(OrderDetailsController.name);
     constructor(
         private tiktokOrderService: TiktokOrderService,
-        private tiktokOrderItemService: TiktokOrderItemService
+        private tiktokOrderItemService: TiktokOrderItemService,
+        @Inject('TIKTOK_RECEIPT_SERVICE')
+        private tiktokReceiptClientProxy: ClientProxy // Replace with actual type if available
     ) {}
 
     @MessagePattern('tiktok.transformed_order_details')
@@ -77,6 +79,14 @@ export class OrderDetailsController {
                             updateItem
                         );
                     }
+
+                    this.logger.log(
+                        `[OrderDetailsController] Emitting: tiktok.order_loaded, orderId ${order.orderId}`
+                    );
+                    this.tiktokReceiptClientProxy.emit('tiktok.order_loaded', {
+                        orderId: order.orderId,
+                        shopId: order.shopId,
+                    });
                 }
             }
         }

@@ -1,20 +1,18 @@
 import { Module } from '@nestjs/common';
-import { TiktokLoaderController } from './tiktok-loader.controller';
-import { TiktokLoaderService } from './tiktok-loader.service';
-import { ReceiptModule } from './receipt/receipt.module';
-import { OrderDetailsModule } from './order-details/order-details.module';
-import { DatabaseOrderhubModule } from '@app/database-orderhub';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TiktokReceiptController } from './tiktok-receipt.controller';
+import { TiktokReceiptService } from './tiktok-receipt.service';
+import { TiktokOrderService } from '@app/database-orderhub/tiktok_order/tiktok_order.service';
+import { DatabaseOrderhubModule } from '@app/database-orderhub/database-orderhub.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TiktokOrder } from '@app/database-orderhub/tiktok_order/tiktok_order.entity';
 import { TiktokOrderItem } from '@app/database-orderhub/tiktok_order_item/tiktok_order_item.entity';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
     imports: [
         DatabaseOrderhubModule,
         ConfigModule.forRoot({
-            envFilePath: ['apps/tiktok-loader/.env'], // Adjusted path to locate the .env file
+            envFilePath: ['apps/tiktok-receipt/.env'], // Adjusted path to locate the .env file
             isGlobal: true,
         }),
         TypeOrmModule.forRootAsync({
@@ -33,18 +31,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
             },
             inject: [ConfigService],
         }),
-        OrderDetailsModule,
-        ClientsModule.register([
-            {
-                name: 'TIKTOK_RECEIPT_SERVICE',
-                transport: Transport.TCP,
-                options: {
-                    port: 3004,
-                },
-            },
-        ]),
     ],
-    controllers: [TiktokLoaderController],
-    providers: [TiktokLoaderService],
+    controllers: [TiktokReceiptController],
+    providers: [TiktokReceiptService],
 })
-export class TiktokLoaderModule {}
+export class TiktokReceiptModule {}
