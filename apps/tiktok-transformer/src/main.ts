@@ -3,7 +3,7 @@ import { TiktokTransformerModule } from './tiktok-transformer.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 
-const logger = new Logger('App');
+const logger = new Logger('TiktokTransformerApp');
 
 async function bootstrap() {
     const app = await NestFactory.createMicroservice<MicroserviceOptions>(
@@ -16,6 +16,6 @@ async function bootstrap() {
         }
     );
     await app.listen();
-    logger.log('Microservice is listening');
+    logger.log('TiktokTransformerApp Microservice is listening');
 }
 bootstrap();

@@ -1,96 +1,101 @@
 {
-  "$schema": "https://json.schemastore.org/nest-cli",
-  "collection": "@nestjs/schematics",
-  "monorepo": true,
-  "compilerOptions": {
-    "webpack": true
-  },
-  "projects": {
-    "api-gateway": {
-      "type": "application",
-      "root": "apps/api-gateway",
-      "entryFile": "main",
-      "sourceRoot": "apps/api-gateway/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
-      }
+    "$schema": "https://json.schemastore.org/nest-cli",
+    "collection": "@nestjs/schematics",
+    "monorepo": true,
+    "compilerOptions": {
+        "webpack": true
     },
-    "contracts": {
-      "type": "library",
-      "root": "libs/contracts",
-      "entryFile": "index",
-      "sourceRoot": "libs/contracts/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/contracts/tsconfig.lib.json"
-      }
-    },
-    "database-orderhub": {
-      "type": "library",
-      "root": "libs/database-orderhub",
-      "entryFile": "index",
-      "sourceRoot": "libs/database-orderhub/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/database-orderhub/tsconfig.lib.json"
-      }
-    },
-    "database-scrooge": {
-      "type": "library",
-      "root": "libs/database-scrooge",
-      "entryFile": "index",
-      "sourceRoot": "libs/database-scrooge/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/database-scrooge/tsconfig.lib.json"
-      }
-    },
-    "database-tiktok": {
-      "type": "library",
-      "root": "libs/database-tiktok",
-      "entryFile": "index",
-      "sourceRoot": "libs/database-tiktok/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/database-tiktok/tsconfig.lib.json"
-      }
-    },
-    "tiktok-fetcher": {
-      "type": "application",
-      "root": "apps/tiktok-fetcher",
-      "entryFile": "main",
-      "sourceRoot": "apps/tiktok-fetcher/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/tiktok-fetcher/tsconfig.app.json"
-      }
-    },
-    "tiktok-loader": {
-      "type": "application",
-      "root": "apps/tiktok-loader",
-      "entryFile": "main",
-      "sourceRoot": "apps/tiktok-loader/src",
-      "compilerOptions": {
-        "assets": [
-          {
-            "include": "**/*.pug"
-          }
-        ],
-        "tsConfigPath": "apps/tiktok-loader/tsconfig.app.json"
-      }
-    },
-    "tiktok-receipt": {
-      "type": "application",
-      "root": "apps/tiktok-receipt",
-      "entryFile": "main",
-      "sourceRoot": "apps/tiktok-receipt/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/tiktok-receipt/tsconfig.app.json"
-      }
-    },
-    "tiktok-transformer": {
-      "type": "application",
-      "root": "apps/tiktok-transformer",
-      "entryFile": "main",
-      "sourceRoot": "apps/tiktok-transformer/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/tiktok-transformer/tsconfig.app.json"
-      }
+    "projects": {
+        "api-gateway": {
+            "type": "application",
+            "root": "apps/api-gateway",
+            "entryFile": "main",
+            "sourceRoot": "apps/api-gateway/src",
+            "compilerOptions": {
+                "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+            }
+        },
+        "contracts": {
+            "type": "library",
+            "root": "libs/contracts",
+            "entryFile": "index",
+            "sourceRoot": "libs/contracts/src",
+            "compilerOptions": {
+                "tsConfigPath": "libs/contracts/tsconfig.lib.json"
+            }
+        },
+        "database-orderhub": {
+            "type": "library",
+            "root": "libs/database-orderhub",
+            "entryFile": "index",
+            "sourceRoot": "libs/database-orderhub/src",
+            "compilerOptions": {
+                "tsConfigPath": "libs/database-orderhub/tsconfig.lib.json"
+            }
+        },
+        "database-scrooge": {
+            "type": "library",
+            "root": "libs/database-scrooge",
+            "entryFile": "index",
+            "sourceRoot": "libs/database-scrooge/src",
+            "compilerOptions": {
+                "tsConfigPath": "libs/database-scrooge/tsconfig.lib.json"
+            }
+        },
+        "database-tiktok": {
+            "type": "library",
+            "root": "libs/database-tiktok",
+            "entryFile": "index",
+            "sourceRoot": "libs/database-tiktok/src",
+            "compilerOptions": {
+                "tsConfigPath": "libs/database-tiktok/tsconfig.lib.json"
+            }
+        },
+        "tiktok-fetcher": {
+            "type": "application",
+            "root": "apps/tiktok-fetcher",
+            "entryFile": "main",
+            "sourceRoot": "apps/tiktok-fetcher/src",
+            "compilerOptions": {
+                "tsConfigPath": "apps/tiktok-fetcher/tsconfig.app.json"
+            }
+        },
+        "tiktok-loader": {
+            "type": "application",
+            "root": "apps/tiktok-loader",
+            "entryFile": "main",
+            "sourceRoot": "apps/tiktok-loader/src",
+            "compilerOptions": {
+                "assets": [
+                    {
+                        "include": "**/*.pug"
+                    }
+                ],
+                "tsConfigPath": "apps/tiktok-loader/tsconfig.app.json"
+            }
+        },
+        "tiktok-receipt": {
+            "type": "application",
+            "root": "apps/tiktok-receipt",
+            "entryFile": "main",
+            "sourceRoot": "apps/tiktok-receipt/src",
+            "compilerOptions": {
+                "assets": [
+                    {
+                        "include": "**/*.pug"
+                    }
+                ],
+                "tsConfigPath": "apps/tiktok-receipt/tsconfig.app.json"
+            }
+        },
+        "tiktok-transformer": {
+            "type": "application",
+            "root": "apps/tiktok-transformer",
+            "entryFile": "main",
+            "sourceRoot": "apps/tiktok-transformer/src",
+            "compilerOptions": {
+                "tsConfigPath": "apps/tiktok-transformer/tsconfig.app.json"
+            }
+        }
     }
-  }
 }

@@ -1,0 +1,66 @@
+extends ./default
+
+mixin _products_header
+    tr(class="middle")
+        th(class="highlight" width="14%")
+            p ITEM CODE
+        th(class="highlight" width="35%")
+            p PRODUCT NAME
+        th(class="highlight" width="6%")
+            p QTY
+        th(class="highlight" width="6%")
+            p UOM
+        th(class="highlight" width="9%")
+            p UNIT PRICE
+        th(class="highlight" width="9%")
+            p AMOUNT
+        th(class="highlight" width="9%")
+            p TOTAL DISCOUNT
+        th(class="highlight" width="12%")
+            p NET AMOUNT
+
+mixin _products_contents(product)
+    tr
+        td(class!=attributes.class style={'text-align': 'left', 'padding-top': '2px', 'padding-right': '1%'})
+            if (product.variation_sku === '')
+                p= product.shop_sku
+            else
+                p= product.variation_sku
+        td(class!=attributes.class style={'text-align': 'left', 'padding-top': '2px'})
+            p= product.item_name
+        td(class!=attributes.class style={'text-align': 'right', 'padding-top': '2px'})
+            P= product.quantity
+        td(class!=attributes.class style={'text-align': 'center', 'padding-top': '2px'})
+            P PC
+        td(class!=attributes.class style={'text-align': 'right', 'padding-top': '2px'})
+            p= product.item_price
+        td(class!=attributes.class style={'text-align': 'right', 'padding-top': '2px'})
+            p= product.item_price
+        td(class!=attributes.class style={'text-align': 'right', 'padding-top': '2px'})
+            p= product.store_discount
+        td(class!=attributes.class style={'text-align': 'right', 'padding-top': '2px'})
+            p= product.total_actual_price
+
+mixin _products(_package)
+    if (_package.items.length != 0)
+        table(width="100%")
+            +_products_header
+            while _package.items.length != 0
+                - var current = _package.items.shift()
+                if current == 0
+                    - break
+                if _package.items.length == 0
+                    +_products_contents(current)(class="bottom-border")
+                    - break
+                else
+                    +_products_contents(current)
+    else if _package.items.length == 0
+        - _package.items.push(0)
+
+block content
+    if (_package.page_number === _package.total_pages)
+        div(class="final_page")
+            +_products(_package)
+    else
+        div(class="products")
+            +_products(_package)

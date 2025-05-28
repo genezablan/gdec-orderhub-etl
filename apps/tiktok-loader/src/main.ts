@@ -3,7 +3,7 @@ import { TiktokLoaderModule } from './tiktok-loader.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 
-const logger = new Logger('App');
+const logger = new Logger('TiktokLoaderApp');
 
 async function bootstrap() {
     const app = await NestFactory.createMicroservice<MicroserviceOptions>(
@@ -16,6 +16,6 @@ async function bootstrap() {
         }
     );
     await app.listen();
-    logger.log('Microservice is listening');
+    logger.log('TiktokLoaderApp Microservice is listening');
 }
 bootstrap();

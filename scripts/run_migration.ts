@@ -1,4 +1,9 @@
+import * as dotenv from 'dotenv';
+import { resolve } from 'path';
+dotenv.config({ path: resolve(__dirname, '../apps/tiktok-loader/.env') });
+
 import { AppDataSource } from '../libs/database-orderhub/src/data_source';
+// Load .env file from tiktok-loader
 
 (async () => {
     try {
