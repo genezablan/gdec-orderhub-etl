@@ -13,6 +13,15 @@ export class TiktokReceiptService {
     getHello(): string {
         return 'Hello World!';
     }
+    
+    /**
+     * Rounds a number up to two decimal places.
+     * @param value The number to round up.
+     * @returns The rounded number.
+     */
+    roundUpToTwoDecimals(value: number): number {
+        return Math.ceil(value * 100) / 100;
+    }
 
     renderReceiptHtml(data: pug.Options & pug.LocalsObject): string {
         console.log('__dirname:', __dirname);
@@ -38,7 +47,7 @@ export class TiktokReceiptService {
         await browser.close();
     }
 
-    mapOrderWithItemsToReceiptDto(orderWithItems: TiktokOrderDto): ReceiptDto {
+    mapOrderWithItemsToReceiptDto(orderWithItems: TiktokOrderDto , sequenceNumber: string): ReceiptDto {
         const items = Array.isArray(orderWithItems.items)
             ? orderWithItems.items.map((item: TiktokOrderItemDto) => ({
                   shop_sku: item.sellerSku ?? '',
@@ -55,11 +64,10 @@ export class TiktokReceiptService {
                           ? Number(item.platformDiscount)
                           : 0),
                   total_actual_price:
-                      (item.originalPrice ? Number(item.originalPrice) : 0) -
-                      ((item.sellerDiscount ? Number(item.sellerDiscount) : 0) +
-                          (item.platformDiscount
-                              ? Number(item.platformDiscount)
-                              : 0)),
+                        this.roundUpToTwoDecimals(
+                            (Number(item.originalPrice ?? 0) - (Number(item.sellerDiscount ?? 0) + Number(item.platformDiscount ?? 0)))
+                            * (typeof item.quantity === 'number' ? item.quantity : 1)
+                        )
               }))
             : [];
         const amount_due =
@@ -92,7 +100,7 @@ export class TiktokReceiptService {
         return {
             packages: [
                 {
-                    sequence_number: '1',
+                    sequence_number: sequenceNumber,
                     page_number: 1,
                     total_pages: 1,
                     billing_address: {
@@ -104,6 +112,7 @@ export class TiktokReceiptService {
                         postal_code: orderWithItems.postalCode ?? '',
                         country: orderWithItems.country ?? '',
                         full_address: orderWithItems.fullAddress ?? '',
+                        tax_identification_number: orderWithItems?.tin ?? ''
                     },
                     shipping_address: {
                         full_name: orderWithItems.name ?? '',

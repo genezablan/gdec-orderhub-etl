@@ -288,4 +288,7 @@ export class TiktokOrder {
 
     @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
     updatedAt: Date;
+
+    @Column({ name: 'tin', type: 'varchar', nullable: true })
+    tin: string;
 }

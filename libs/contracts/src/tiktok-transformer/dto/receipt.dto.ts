@@ -7,6 +7,7 @@ export class Address {
     postal_code: string;
     country: string;
     full_address: string;
+    tax_identification_number: string
 }
 
 export class Item {

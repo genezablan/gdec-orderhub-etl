@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { TiktokService } from './tiktok.service';
 import {
     GetOrdersQueryDto,
@@ -20,6 +20,9 @@ export class TiktokController {
         const orderDetails = this.tiktokService.getOrderDetails({
             shop_id: query.shop_id,
             order_id: query.order_id,
+            name: query.name,
+            full_address: query.full_address,
+            tin: query.tin
         });
 
         return orderDetails;

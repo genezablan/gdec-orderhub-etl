@@ -33,7 +33,7 @@ export class TiktokController {
     }
 
     @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_ORDER_DETAILS)
-    async getOrderDetails(params: { shop_id: string; order_id: string }) {
+    async getOrderDetails(params: { shop_id: string; order_id: string, name?: string, full_address?: string, tin?: string }) {
         const shop = await this.shopsService.findByTiktokShopId(params.shop_id);
 
         if (!shop) {
@@ -57,6 +57,11 @@ export class TiktokController {
             this.tiktokTransformerClient.emit('tiktok.raw_order_details', {
                 orders: result.data.orders,
                 shop: shop,
+                customer_info: {
+                    name: params.name,
+                    full_address: params.full_address,
+                    tin: params.tin
+                }
             });
         }
         return result;

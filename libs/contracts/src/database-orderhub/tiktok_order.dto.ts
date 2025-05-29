@@ -273,4 +273,8 @@ export class TiktokOrderDto {
     @IsOptional()
     @IsString()
     addressLine1?: string;
+
+    @IsOptional()
+    @IsString()
+    tin?: string
 }

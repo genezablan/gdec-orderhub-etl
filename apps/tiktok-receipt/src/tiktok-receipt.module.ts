@@ -7,9 +7,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TiktokOrder } from '@app/database-orderhub/tiktok_order/tiktok_order.entity';
 import { TiktokOrderItem } from '@app/database-orderhub/tiktok_order_item/tiktok_order_item.entity';
-
+import { DatabaseScroogeModule } from '@app/database-scrooge';
 @Module({
     imports: [
+        DatabaseScroogeModule,
         DatabaseOrderhubModule,
         ConfigModule.forRoot({
             envFilePath: ['apps/tiktok-receipt/.env'], // Adjusted path to locate the .env file

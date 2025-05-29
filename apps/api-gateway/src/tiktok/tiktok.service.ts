@@ -19,12 +19,15 @@ export class TiktokService {
         );
     }
 
-    getOrderDetails(params: { shop_id: string; order_id: string }) {
+    getOrderDetails(params: { shop_id: string; order_id: string , name?:string, full_address?:string, tin?: string}) {
         return this.tiktokFetchServiceClient.send(
             TIKTOK_FETCHER_PATTERNS.GET_ORDER_DETAILS,
             {
                 shop_id: params.shop_id,
                 order_id: params.order_id,
+                name: params.name,
+                full_address: params.full_address,
+                tin: params.tin
             }
         );
     }

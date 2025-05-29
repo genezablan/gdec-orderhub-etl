@@ -15,6 +15,8 @@ export class OrderDetailsService {
         const orders: TiktokOrderDto[] = [];
         const shop = raw.shop;
         const shopId = shop.tiktok_shop_code;
+        const customer_info = raw.customer_info;
+
         raw.orders.forEach(order => {
             const items: TiktokOrderItemDto[] = [];
             const orderDto = new TiktokOrderDto();
@@ -111,14 +113,15 @@ export class OrderDetailsService {
                 orderDto.firstName = order.recipient_address.first_name;
                 orderDto.firstNameLocalScript =
                     order.recipient_address.first_name_local_script;
-                orderDto.name = order.recipient_address.name;
+                orderDto.name = customer_info.name ?? order.recipient_address.name;
                 orderDto.phoneNumber = order.recipient_address.phone_number;
                 orderDto.postalCode = order.recipient_address.postal_code;
                 orderDto.regionCode = order.recipient_address.region_code;
-                orderDto.fullAddress = order.recipient_address.full_address;
+                orderDto.fullAddress = customer_info?.full_address ?? order.recipient_address.full_address;
                 orderDto.lastName = order.recipient_address.last_name;
                 orderDto.lastNameLocalScript =
                     order.recipient_address.last_name_local_script;
+                orderDto.tin = customer_info?.tin;
             }
             orderDto.rtsSlaTime = order.rts_sla_time
                 ? new Date(order.rts_sla_time * 1000)

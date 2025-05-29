@@ -1,4 +1,9 @@
 export interface RawOrderDetailsDto {
+    customer_info: {
+        name?: string,
+        full_address?: string,
+        tin?: string
+    },
     shop: {
         tiktok_shop_code: string;
         // ...other shop fields
