@@ -17,7 +17,7 @@ import { DatabaseScroogeModule } from '@app/database-scrooge';
         DatabaseTiktokModule,
         LoggingModule,
         ConfigModule.forRoot({
-            envFilePath: ['apps/tiktok-fetcher/.env'], // Adjusted path to locate the .env file
+            envFilePath: ['.env'], // Load from root .env file
             isGlobal: true,
         }),
         TypeOrmModule.forRootAsync({

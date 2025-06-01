@@ -23,7 +23,40 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+GDEC OrderHub ETL - A microservices-based data extraction, transformation, and loading system for TikTok Shop orders using NestJS framework.
+
+## Architecture
+
+This project consists of multiple microservices:
+- **API Gateway** (Port 3000): Main entry point and routing
+- **TikTok Fetcher** (Port 3001): Fetches order data from TikTok Shop API
+- **TikTok Transformer** (Port 3002): Transforms raw order data
+- **TikTok Loader** (Port 3003): Loads processed data into OrderHub database
+- **TikTok Receipt** (Port 3004): Generates receipt documents
+
+## Environment Configuration
+
+All applications use a centralized `.env` file located at the project root. Copy `.env.example` to `.env` and configure your environment variables:
+
+```bash
+cp .env.example .env
+```
+
+### Required Environment Variables
+
+- **OrderHub Database**: `ORDERHUB_DB_HOST`, `ORDERHUB_DB_PORT`, `ORDERHUB_DB_NAME`, `ORDERHUB_DB_USERNAME`, `ORDERHUB_DB_PASSWORD`
+- **TikTok Database**: `TIKTOK_DB_HOST`, `TIKTOK_DB_PORT`, `TIKTOK_DB_NAME`, `TIKTOK_DB_USERNAME`, `TIKTOK_DB_PASSWORD`
+- **MongoDB**: `MONGODB_SCROOGE_URI`
+- **TikTok API**: `TIKTOK_APP_KEY`, `TIKTOK_APP_SECRET`, `TIKTOK_ENDPOINT`
+- **Application**: `NODE_ENV`
+
+### Verify Configuration
+
+Run the environment verification script to ensure all variables are properly configured:
+
+```bash
+npx ts-node scripts/verify-env-config.ts
+```
 
 ## Project setup
 
@@ -34,14 +67,34 @@ $ npm install
 ## Compile and run the project
 
 ```bash
-# development
-$ npm run start
+# Start individual services
+$ npm run start:api-gateway
+$ npm run start:tiktok-fetcher
+$ npm run start:tiktok-loader
+$ npm run start:tiktok-transformer
+$ npm run start:tiktok-receipt
 
-# watch mode
+# Start all services concurrently
+$ npm run start:all
+
+# Development mode (watch)
 $ npm run start:dev
 
-# production mode
+# Production mode
 $ npm run start:prod
+```
+
+## Database Management
+
+```bash
+# Generate new migration
+$ npm run generate-migration
+
+# Run migrations
+$ npm run run-migration
+
+# Test database connection
+$ npx ts-node scripts/test-db-connection.ts
 ```
 
 ## Run tests

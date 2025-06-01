@@ -2,8 +2,8 @@ import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Load .env file from tiktok-loader
-const dotenvPath = path.resolve(__dirname, '../apps/tiktok-loader/.env');
+// Load .env file from root directory (centralized configuration)
+const dotenvPath = path.resolve(__dirname, '../.env');
 if (fs.existsSync(dotenvPath)) {
     require('dotenv').config({ path: dotenvPath });
 }

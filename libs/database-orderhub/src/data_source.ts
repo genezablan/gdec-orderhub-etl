@@ -1,31 +1,27 @@
 import { DataSource } from 'typeorm';
 import { TiktokOrder } from './tiktok_order/tiktok_order.entity';
 import { TiktokOrderItem } from './tiktok_order_item/tiktok_order_item.entity';
+import { SalesInvoice } from './sales_invoice/sales_invoice.entity';
 
-console.log({
-    type: 'postgres',
-    host: process.env.ORDERHUB_DB_HOST || '',
-    port: process.env.ORDERHUB_DB_PORT
-        ? parseInt(process.env.ORDERHUB_DB_PORT)
-        : 5432,
-    username: process.env.ORDERHUB_DB_USERNAME || '',
-    password: process.env.ORDERHUB_DB_PASSWORD || '',
-    database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',
-    migrations: ['libs/database-orderhub/src/migrations/*.ts'],
-    synchronize: false, // true only in dev
-});
+// Load environment variables from root .env file
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-// Use environment variables if available, fallback to hardcoded values for dev/testing
+// Load .env from root of monorepo
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// Use environment variables with fallback to default values
 export const AppDataSource = new DataSource({
     type: 'postgres',
-    host: process.env.ORDERHUB_DB_HOST || '',
+    host: process.env.ORDERHUB_DB_HOST || 'localhost',
     port: process.env.ORDERHUB_DB_PORT
         ? parseInt(process.env.ORDERHUB_DB_PORT)
         : 5432,
-    username: process.env.ORDERHUB_DB_USERNAME || '',
+    username: process.env.ORDERHUB_DB_USERNAME || 'postgres',
     password: process.env.ORDERHUB_DB_PASSWORD || '',
-    database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',
-    entities: [TiktokOrder, TiktokOrderItem],
-    migrations: ['libs/database-orderhub/src/migrations/*.ts'],
-    synchronize: false, // true only in dev
+    database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',    entities: [TiktokOrder, TiktokOrderItem, SalesInvoice],
+    migrations: [path.resolve(__dirname, 'migrations/*.ts')],
+    migrationsRun: false,
+    synchronize: false, // Should be false in production
+    logging: process.env.NODE_ENV === 'development',
 });

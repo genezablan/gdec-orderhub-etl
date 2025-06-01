@@ -16,7 +16,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         DatabaseOrderhubModule,
         LoggingModule,
         ConfigModule.forRoot({
-            envFilePath: ['apps/tiktok-loader/.env'], // Adjusted path to locate the .env file
+            envFilePath: ['.env'], // Load from root .env file
             isGlobal: true,
         }),
         TypeOrmModule.forRootAsync({

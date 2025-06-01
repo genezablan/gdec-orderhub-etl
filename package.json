@@ -26,7 +26,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./apps/gdec-orderhub-etl/test/jest-e2e.json",
     "generate-migration": "ts-node scripts/database_orderhub_migration.ts",
-    "run-migration": "ts-node scripts/run_migration.ts"
+    "run-migration": "ts-node scripts/run_migration.ts",
+    "verify-env": "ts-node scripts/verify-env-config.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

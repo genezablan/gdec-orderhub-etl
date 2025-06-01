@@ -4,9 +4,14 @@ import { TiktokTransformerController } from './tiktok-transformer.controller';
 import { TiktokTransformerService } from './tiktok-transformer.service';
 import { ReceiptModule } from './receipt/receipt.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
     imports: [
+        ConfigModule.forRoot({
+            envFilePath: ['.env'], // Load from root .env file
+            isGlobal: true,
+        }),
         LoggingModule,
         ReceiptModule,
         ClientsModule.register([
