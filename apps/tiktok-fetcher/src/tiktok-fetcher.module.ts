@@ -1,3 +1,4 @@
+import { LoggingModule } from '@app/logging';
 import { Module } from '@nestjs/common';
 import { TiktokFetcherController } from './tiktok-fetcher.controller';
 import { TiktokFetcherService } from './tiktok-fetcher.service';
@@ -14,6 +15,7 @@ import { DatabaseScroogeModule } from '@app/database-scrooge';
 @Module({
     imports: [
         DatabaseTiktokModule,
+        LoggingModule,
         ConfigModule.forRoot({
             envFilePath: ['apps/tiktok-fetcher/.env'], // Adjusted path to locate the .env file
             isGlobal: true,
@@ -29,6 +31,7 @@ import { DatabaseScroogeModule } from '@app/database-scrooge';
                     password: config.get<string>('TIKTOK_DB_PASSWORD'),
                     database: config.get<string>('TIKTOK_DB_NAME'),
                     entities: [Shops],
+                    logging: true
                 };
                 return dbConfig;
             },

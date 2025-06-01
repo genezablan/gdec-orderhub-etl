@@ -1,3 +1,4 @@
+import { LoggingModule } from '@app/logging';
 import { Module } from '@nestjs/common';
 import { TiktokReceiptController } from './tiktok-receipt.controller';
 import { TiktokReceiptService } from './tiktok-receipt.service';
@@ -12,6 +13,7 @@ import { DatabaseScroogeModule } from '@app/database-scrooge';
     imports: [
         DatabaseScroogeModule,
         DatabaseOrderhubModule,
+        LoggingModule,
         ConfigModule.forRoot({
             envFilePath: ['apps/tiktok-receipt/.env'], // Adjusted path to locate the .env file
             isGlobal: true,

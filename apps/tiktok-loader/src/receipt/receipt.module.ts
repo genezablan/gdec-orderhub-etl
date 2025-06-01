@@ -1,3 +1,4 @@
+import { LoggingModule } from '@app/logging';
 import { Module } from '@nestjs/common';
 import { ReceiptService } from './receipt.service';
 import { ReceiptController } from './receipt.controller';

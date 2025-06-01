@@ -113,6 +113,12 @@ export class TiktokService {
             sign: sign,
         };
 
+        console.log('[TikTok Service] Sending order search request:', {
+            url,
+            queryParams,
+            body: params.body
+        });
+
         const response =
             await this.httpClientService.post<IGetOrderSearchResponse>(
                 url,
@@ -125,6 +131,13 @@ export class TiktokService {
                     },
                 }
             );
+            
+        console.log('[TikTok Service] Order search response:', {
+            status: response?.code,
+            message: response?.message,
+            totalCount: response?.data?.total_count,
+            ordersCount: response?.data?.orders?.length
+        });
         return response;
     }
 
@@ -155,6 +168,12 @@ export class TiktokService {
             sign,
         };
 
+        console.log('[TikTok Service] Sending order details request:', {
+            url,
+            queryParams,
+            orderIds: params.ids
+        });
+
         const response =
             await this.httpClientService.get<IGetOrderDetailsResponse>(url, {
                 params: queryParams,
@@ -163,6 +182,12 @@ export class TiktokService {
                     'content-type': 'application/json',
                 },
             });
+
+        console.log('[TikTok Service] Order details response:', {
+            status: response?.code,
+            message: response?.message,
+            ordersCount: response?.data?.orders?.length
+        });
 
         return response;
     }

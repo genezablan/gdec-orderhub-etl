@@ -1,3 +1,4 @@
+import { LoggingModule } from '@app/logging';
 import { Module } from '@nestjs/common';
 import { TiktokLoaderController } from './tiktok-loader.controller';
 import { TiktokLoaderService } from './tiktok-loader.service';
@@ -13,6 +14,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 @Module({
     imports: [
         DatabaseOrderhubModule,
+        LoggingModule,
         ConfigModule.forRoot({
             envFilePath: ['apps/tiktok-loader/.env'], // Adjusted path to locate the .env file
             isGlobal: true,

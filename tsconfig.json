@@ -41,6 +41,12 @@
       ],
       "@app/database-tiktok/*": [
         "libs/database-tiktok/src/*"
+      ],
+      "@app/logging": [
+        "libs/logging/src"
+      ],
+      "@app/logging/*": [
+        "libs/logging/src/*"
       ]
     }
   }
