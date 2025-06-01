@@ -197,6 +197,9 @@ export class TiktokOrder {
     @Column({ name: 'address_detail', type: 'text', nullable: true })
     addressDetail: string;
 
+     @Column({ name: 'address_detail_unmasked', type: 'text', nullable: true })
+    addressDetailUnmasked: string;
+
     @Column({ name: 'country', type: 'varchar', nullable: true })
     country: string;
 
@@ -233,6 +236,9 @@ export class TiktokOrder {
 
     @Column({ name: 'name', type: 'varchar', nullable: true })
     name: string;
+
+    @Column({ name: 'name_unmasked', type: 'varchar', nullable: true })
+    name_unmasked: string;
 
     @Column({ name: 'phone_number', type: 'varchar', nullable: true })
     phoneNumber: string;
