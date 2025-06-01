@@ -7,8 +7,20 @@ export class Address {
     postal_code: string;
     country: string;
     full_address: string;
-    tax_identification_number: string
 }
+
+export class BillingAddress {
+    full_name?: string;
+    address_line1?: string;
+    address_line2?: string;
+    city?: string;
+    state?: string;
+    postal_code?: string;
+    country?: string;
+    full_address?: string;
+    tax_identification_number?: string
+}
+
 
 export class Item {
     shop_sku: string;
@@ -24,7 +36,7 @@ export class Package {
     sequence_number: string;
     page_number: number;
     total_pages: number;
-    billing_address: Address;
+    billing_address: BillingAddress;
     shipping_address: Address;
     items: Item[];
     account_name: string;

@@ -70,28 +70,29 @@ export class TiktokReceiptService {
                         )
               }))
             : [];
-        const amount_due =
-            (orderWithItems.originalShippingFee
-                ? Number(orderWithItems.originalShippingFee)
-                : 0) +
-            (orderWithItems.originalTotalProductPrice
-                ? Number(orderWithItems.originalTotalProductPrice)
-                : 0) -
-            (orderWithItems.platformDiscount
-                ? Number(orderWithItems.platformDiscount)
-                : 0) -
-            (orderWithItems.sellerDiscount
-                ? Number(orderWithItems.sellerDiscount)
-                : 0) -
-            (orderWithItems.shippingFeeCofundedDiscount
-                ? Number(orderWithItems.shippingFeeCofundedDiscount)
-                : 0) -
-            (orderWithItems.shippingFeePlatformDiscount
-                ? Number(orderWithItems.shippingFeePlatformDiscount)
-                : 0) -
-            (orderWithItems.shippingFeeSellerDiscount
-                ? Number(orderWithItems.shippingFeeSellerDiscount)
-                : 0);
+        // const amount_due =
+        //     (orderWithItems.originalShippingFee
+        //         ? Number(orderWithItems.originalShippingFee)
+        //         : 0) +
+        //     (orderWithItems.originalTotalProductPrice
+        //         ? Number(orderWithItems.originalTotalProductPrice)
+        //         : 0) -
+        //     (orderWithItems.platformDiscount
+        //         ? Number(orderWithItems.platformDiscount)
+        //         : 0) -
+        //     (orderWithItems.sellerDiscount
+        //         ? Number(orderWithItems.sellerDiscount)
+        //         : 0) -
+        //     (orderWithItems.shippingFeeCofundedDiscount
+        //         ? Number(orderWithItems.shippingFeeCofundedDiscount)
+        //         : 0) -
+        //     (orderWithItems.shippingFeePlatformDiscount
+        //         ? Number(orderWithItems.shippingFeePlatformDiscount)
+        //         : 0) -
+        //     (orderWithItems.shippingFeeSellerDiscount
+        //         ? Number(orderWithItems.shippingFeeSellerDiscount)
+        //         : 0);
+        const amount_due = orderWithItems.subTotal ? Number(orderWithItems.subTotal) : 0;
         const vatable_sales = Math.round((amount_due / 1.12) * 100) / 100;
         const total_discount = 0;
         const subtotal_net = vatable_sales;
