@@ -23,5 +23,5 @@ export const AppDataSource = new DataSource({
     migrations: [path.resolve(__dirname, 'migrations/*.ts')],
     migrationsRun: false,
     synchronize: false, // Should be false in production
-    logging: process.env.NODE_ENV === 'development',
+    logging: false,
 });

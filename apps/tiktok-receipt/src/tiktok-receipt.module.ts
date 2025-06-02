@@ -6,6 +6,7 @@ import { DatabaseOrderhubModule, databaseConfig } from '@app/database-orderhub';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseScroogeModule } from '@app/database-scrooge';
+import awsConfig from './config/aws.config';
 
 @Module({
     imports: [
@@ -14,7 +15,7 @@ import { DatabaseScroogeModule } from '@app/database-scrooge';
         LoggingModule,
         ConfigModule.forRoot({
             isGlobal: true,
-            load: [databaseConfig],
+            load: [databaseConfig, awsConfig],
             envFilePath: ['.env'], // Load from root .env file
         }),
     ],

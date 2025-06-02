@@ -42,15 +42,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         status = 400;
         message = errorResponse.message;
         error = 'Bad Request';
-      }
-    }
-    // Handle error objects with statusCode property directly
-    else if (exception && typeof exception === 'object' && 'statusCode' in exception) {
-      const err = exception as any;
-      if (err.statusCode === 400) {
-        status = 400;
-        message = err.message || 'Bad Request';
-        error = 'Bad Request';
+      }else if(errorResponse.statusCode === 404) {
+        status = 404;
+        message = errorResponse.message || 'Not Found';
+        error = 'Not Found';
       }
     }
 

@@ -19,22 +19,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
             envFilePath: ['.env'], // Load from root .env file
             isGlobal: true,
         }),
-        TypeOrmModule.forRootAsync({
-            imports: [ConfigModule],
-            useFactory: (config: ConfigService) => {
-                const dbConfig = {
-                    type: 'postgres' as const,
-                    host: config.get<string>('ORDERHUB_DB_HOST'),
-                    port: parseInt(config.get('ORDERHUB_DB_PORT', '5432')),
-                    username: config.get<string>('ORDERHUB_DB_USERNAME'),
-                    password: config.get<string>('ORDERHUB_DB_PASSWORD'),
-                    database: config.get<string>('ORDERHUB_DB_NAME'),
-                    entities: [TiktokOrder, TiktokOrderItem],
-                };
-                return dbConfig;
-            },
-            inject: [ConfigService],
-        }),
         OrderDetailsModule,
         ClientsModule.register([
             {

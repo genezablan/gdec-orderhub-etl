@@ -54,30 +54,94 @@
             <div class="content-header">
                 <h2>Order Management Dashboard</h2>
                 <p>Select a shop and enter an order ID in the sidebar to view detailed information</p>
+                <div style="margin-top: 20px;">
+                    <button id="demoBtn" class="btn btn-secondary" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px;">
+                        📋 Demo Tabbed Interface
+                    </button>
+                    <button id="resetBtn" class="btn btn-secondary hidden" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
+                        🔄 Reset to Dashboard
+                    </button>
+                </div>
             </div>
 
             <!-- Loading Indicator -->
             <div id="loading" class="loading hidden">
                 <div class="spinner"></div>
-                <p>Loading...</p>
+                <p>Loading order details...</p>
             </div>
 
             <!-- Results Section -->
             <section id="resultsSection" class="results-section hidden">
                 <h2 id="resultsTitle">Results</h2>
+                
+                <!-- Tab Navigation -->
+                <div id="tabNavigation" class="tab-navigation hidden">
+                    <button class="tab-button active" data-tab="overview">
+                        <span class="tab-icon">📋</span>
+                        <span class="tab-text">Overview</span>
+                    </button>
+                    <button class="tab-button" data-tab="items">
+                        <span class="tab-icon">📦</span>
+                        <span class="tab-text">Items</span>
+                    </button>
+                    <button class="tab-button" data-tab="shipping">
+                        <span class="tab-icon">🚚</span>
+                        <span class="tab-text">Shipping</span>
+                    </button>
+                    <button class="tab-button" data-tab="invoices">
+                        <span class="tab-icon">📄</span>
+                        <span class="tab-text">Invoices</span>
+                    </button>
+                    <button class="tab-button" data-tab="raw-data">
+                        <span class="tab-icon">🔧</span>
+                        <span class="tab-text">Raw Data</span>
+                    </button>
+                </div>
+                
+                <!-- Tab Content -->
+                <div id="tabContent" class="tab-content">
+                    <div id="overviewTab" class="tab-panel active">
+                        <div id="overviewContent" class="results-content"></div>
+                    </div>
+                    <div id="itemsTab" class="tab-panel">
+                        <div id="itemsContent" class="results-content"></div>
+                    </div>
+                    <div id="shippingTab" class="tab-panel">
+                        <div id="shippingContent" class="results-content"></div>
+                    </div>
+                    <div id="invoicesTab" class="tab-panel">
+                        <div id="invoicesContent" class="results-content"></div>
+                    </div>
+                    <div id="rawDataTab" class="tab-panel">
+                        <div id="rawDataContent" class="results-content"></div>
+                    </div>
+                </div>
+                
+                <!-- Legacy Results Content (for backward compatibility) -->
                 <div id="resultsContent" class="results-content"></div>
             </section>
-
-            <!-- Error Display -->
-            <div id="errorDisplay" class="error-display hidden">
-                <h3>Error</h3>
-                <p id="errorMessage"></p>
-            </div>
         </main>
     </div>
     
     <!-- Mobile Sidebar Overlay -->
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚠️ Error</h3>
+                <button id="closeModalBtn" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modalErrorMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="modalOkBtn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

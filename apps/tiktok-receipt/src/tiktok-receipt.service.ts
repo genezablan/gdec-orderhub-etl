@@ -47,6 +47,16 @@ export class TiktokReceiptService {
         await browser.close();
     }
 
+    async generatePdfBuffer(data: ReceiptDto): Promise<Buffer> {
+        const html = this.renderReceiptHtml(data);
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        const pdfData = await page.pdf({ format: 'A4' });
+        await browser.close();
+        return Buffer.from(pdfData);
+    }
+
     mapOrderWithItemsToReceiptDto(orderWithItems: TiktokOrderDto , sequenceNumber: string): ReceiptDto {
         const items = Array.isArray(orderWithItems.items)
             ? orderWithItems.items.map((item: TiktokOrderItemDto) => ({
