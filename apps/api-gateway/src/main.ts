@@ -2,9 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { ApiGatewayModule } from './api-gateway.module';
 import { ValidationPipe } from '@nestjs/common';
 import { LoggingService } from '@app/logging';
+import { AllExceptionsFilter } from './all-exceptions.filter';
 
 async function bootstrap() {
     const app = await NestFactory.create(ApiGatewayModule);
+    
+    // Enable CORS for web interface
+    app.enableCors({
+        origin: ['http://localhost:8080', 'http://127.0.0.1:8080'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    });
     
     // Set up global logging
     const logger = app.get(LoggingService);
@@ -13,8 +21,19 @@ async function bootstrap() {
     app.useGlobalPipes(
         new ValidationPipe({
             transform: true,
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            exceptionFactory: (errors) => {
+                const messages = errors.map(error => 
+                    Object.values(error.constraints || {}).join(', ')
+                ).join('; ');
+                return new ValidationPipe().createExceptionFactory()(errors);
+            }
         })
     );
+
+    // Add global exception filter
+    app.useGlobalFilters(new AllExceptionsFilter());
     
     const port = process.env.port ?? 3000;
     await app.listen(port);

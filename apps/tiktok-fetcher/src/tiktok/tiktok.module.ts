@@ -6,10 +6,12 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { HttpClientService } from '../http-client/http-client.service';
 import { DatabaseTiktokModule } from '@app/database-tiktok';
 import { DatabaseScroogeModule } from '@app/database-scrooge';
+import { DatabaseOrderhubModule } from '@app/database-orderhub';
 @Module({
     imports: [
         DatabaseScroogeModule,
         DatabaseTiktokModule,
+        DatabaseOrderhubModule,
         ClientsModule.register([
             {
                 name: 'TIKTOK_TRANSFORMER_SERVICE',

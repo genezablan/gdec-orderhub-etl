@@ -8,6 +8,7 @@ export class HttpClientService {
             const response = await axios.get<T>(url, config);
             return response.data;
         } catch (error) {
+            console.log('Error in HttpClientService.get:', error);
             if (axios.isAxiosError(error)) {
                 throw new Error(
                     error.response?.data?.message || 'Request failed'

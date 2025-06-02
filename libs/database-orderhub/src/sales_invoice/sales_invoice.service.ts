@@ -9,7 +9,7 @@ export class SalesInvoiceService {
     private readonly logger = new Logger(SalesInvoiceService.name);
 
     constructor(
-        @InjectRepository(SalesInvoice)
+        @InjectRepository(SalesInvoice, 'orderhubConnection')
         private readonly repo: Repository<SalesInvoice>
     ) {}
 

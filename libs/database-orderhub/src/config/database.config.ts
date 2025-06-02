@@ -14,7 +14,7 @@ export default registerAs(
         password: process.env.ORDERHUB_DB_PASSWORD || '',
         database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',
         entities: [TiktokOrder, TiktokOrderItem, SalesInvoice],
-        synchronize: process.env.NODE_ENV === 'development',
+        synchronize: false,
         logging: process.env.NODE_ENV === 'development',
         // Don't include migrations in the runtime configuration to avoid ES module issues
         // migrations: ['libs/database-orderhub/src/migrations/*.ts'],

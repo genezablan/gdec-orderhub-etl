@@ -104,13 +104,14 @@ export class TiktokOrderItem {
     shippingProviderName: string;
 
     @Column({ name: 'sku_id', type: 'varchar', nullable: true })
-    skuId: string;
-
-    @Column({ name: 'sku_image', type: 'text', nullable: true })
+    skuId: string;    @Column({ name: 'sku_image', type: 'text', nullable: true })
     skuImage: string;
 
     @Column({ name: 'sku_name', type: 'varchar', nullable: true })
     skuName: string;
+
+    @Column({ name: 'quantity', type: 'int', nullable: true })
+    quantity: number;
 
     @Column({ name: 'sku_type', type: 'varchar', nullable: true })
     skuType: string;

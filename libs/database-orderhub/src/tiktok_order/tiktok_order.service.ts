@@ -6,9 +6,8 @@ import { TiktokOrderDto } from '@app/contracts/database-orderhub/tiktok_order.dt
 
 @Injectable()
 export class TiktokOrderService {
-    private readonly logger = new Logger(TiktokOrderService.name);
-    constructor(
-        @InjectRepository(TiktokOrder)
+    private readonly logger = new Logger(TiktokOrderService.name);    constructor(
+        @InjectRepository(TiktokOrder, 'orderhubConnection')
         private readonly repo: Repository<TiktokOrder>
     ) {}
 

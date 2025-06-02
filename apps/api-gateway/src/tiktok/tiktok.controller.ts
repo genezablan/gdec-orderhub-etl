@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { TiktokService } from './tiktok.service';
 import {
     GetOrdersQueryDto,
     GetOrderDetailsQueryDto,
+    GetSupportOrderDetailsQueryDto,
+    GetSalesInvoicesQueryDto,
 } from '@app/contracts/tiktok-fetcher/dto/';
 @Controller('tiktok')
 export class TiktokController {
@@ -26,5 +28,30 @@ export class TiktokController {
         });
 
         return orderDetails;
+    }
+
+    @Get('orders/support-details')
+    async getSupportOrderDetails(@Query() query: GetSupportOrderDetailsQueryDto) {
+        const result = await this.tiktokService.getSupportOrderDetails({
+            shop_id: query.shop_id,
+            order_id: query.order_id
+        });
+        
+        return result;
+    }
+
+    @Get('orders/sales-invoices')
+    async getSalesInvoices(@Query() query: GetSalesInvoicesQueryDto) {
+        const result = await this.tiktokService.getSalesInvoices({
+            shop_id: query.shop_id,
+            order_id: query.order_id
+        });
+        
+        return result;
+    }
+
+    @Get('shops')
+    getShops() {
+        return this.tiktokService.getShops();
     }
 }

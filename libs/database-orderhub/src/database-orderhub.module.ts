@@ -14,6 +14,7 @@ import databaseConfig from './config/database.config';
     imports: [
         ConfigModule.forFeature(databaseConfig),
         TypeOrmModule.forRootAsync({
+            name: 'orderhubConnection', // Named connection to avoid conflicts
             imports: [ConfigModule],
             useFactory: (config: ConfigService) => {
                 const dbConfig = config.get('database');
@@ -24,7 +25,7 @@ import databaseConfig from './config/database.config';
             },
             inject: [ConfigService],
         }),
-        TypeOrmModule.forFeature([TiktokOrder, TiktokOrderItem, SalesInvoice]),
+        TypeOrmModule.forFeature([TiktokOrder, TiktokOrderItem, SalesInvoice], 'orderhubConnection'),
     ],
     providers: [
         DatabaseOrderhubService,

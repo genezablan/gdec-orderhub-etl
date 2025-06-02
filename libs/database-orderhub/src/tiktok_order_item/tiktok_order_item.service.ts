@@ -5,9 +5,8 @@ import { TiktokOrderItem } from './tiktok_order_item.entity';
 
 @Injectable()
 export class TiktokOrderItemService {
-    private readonly logger = new Logger(TiktokOrderItemService.name);
-    constructor(
-        @InjectRepository(TiktokOrderItem)
+    private readonly logger = new Logger(TiktokOrderItemService.name);    constructor(
+        @InjectRepository(TiktokOrderItem, 'orderhubConnection')
         private readonly repo: Repository<TiktokOrderItem>
     ) {}
 
