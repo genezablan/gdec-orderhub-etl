@@ -7,42 +7,54 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>TikTok Order Management</h1>
-            <p>Search for orders and view sales invoices</p>
-        </header>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>TikTok Orders</h1>
+                <button id="sidebarToggle" class="sidebar-toggle">
+                    <span class="hamburger"></span>
+                </button>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="search-section">
+                    <h3>Search Orders</h3>
+                    <p class="sidebar-description">Find and view detailed order information including sales invoices</p>
+                    
+                    <div class="form-group">
+                        <label for="shopSelect">Select Shop:</label>
+                        <select id="shopSelect" class="form-control" disabled>
+                            <option value="">Loading shops...</option>
+                        </select>
+                    </div>
 
-        <main>
-            <!-- Shop Selection and Order Search Form -->
-            <section class="search-section">
-                <div class="form-group">
-                    <label for="shopSelect">Select Shop:</label>
-                    <select id="shopSelect" class="form-control" disabled>
-                        <option value="">Loading shops...</option>
-                    </select>
-                </div>
+                    <div class="form-group">
+                        <label for="orderInput">Order ID:</label>
+                        <input 
+                            type="text" 
+                            id="orderInput" 
+                            class="form-control" 
+                            placeholder="Enter order ID"
+                            disabled
+                        >
+                    </div>
 
-                <div class="form-group">
-                    <label for="orderInput">Order ID:</label>
-                    <input 
-                        type="text" 
-                        id="orderInput" 
-                        class="form-control" 
-                        placeholder="Enter order ID"
-                        disabled
-                    >
+                    <div class="button-group">
+                        <button id="searchOrderBtn" class="btn btn-primary" disabled>
+                            Get Order Details
+                        </button>
+                    </div>
                 </div>
+            </div>
+        </aside>
 
-                <div class="button-group">
-                    <button id="searchOrderBtn" class="btn btn-primary" disabled>
-                        Search Order Details
-                    </button>
-                    <button id="searchInvoicesBtn" class="btn btn-secondary" disabled>
-                        Get Sales Invoices
-                    </button>
-                </div>
-            </section>
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-header">
+                <h2>Order Management Dashboard</h2>
+                <p>Select a shop and enter an order ID in the sidebar to view detailed information</p>
+            </div>
 
             <!-- Loading Indicator -->
             <div id="loading" class="loading hidden">
@@ -63,6 +75,9 @@
             </div>
         </main>
     </div>
+    
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
 
     <script src="script.js"></script>
 </body>

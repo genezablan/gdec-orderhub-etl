@@ -1,4 +1,7 @@
-import { Body, Controller, Get, Post, Query, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException, Res, StreamableFile } from '@nestjs/common';
+import { Response } from 'express';
+import { createReadStream, existsSync } from 'fs';
+import { join } from 'path';
 import { TiktokService } from './tiktok.service';
 import {
     GetOrdersQueryDto,
@@ -48,6 +51,43 @@ export class TiktokController {
         });
         
         return result;
+    }
+
+    @Get('download/invoice')
+    async downloadInvoice(@Query('file') filePath: string, @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+        try {
+            if (!filePath) {
+                throw new BadRequestException('File path is required');
+            }
+
+            // Validate that the file exists
+            if (!existsSync(filePath)) {
+                throw new NotFoundException('Invoice file not found');
+            }
+
+            // Security check: ensure the file path is pointing to a PDF file
+            if (!filePath.toLowerCase().endsWith('.pdf')) {
+                throw new BadRequestException('Only PDF files are allowed');
+            }
+
+            // Extract filename for the download
+            const fileName = filePath.split('/').pop() || 'invoice.pdf';
+
+            // Set response headers
+            res.set({
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="${fileName}"`,
+            });
+
+            // Create and return the file stream
+            const file = createReadStream(filePath);
+            return new StreamableFile(file);
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new InternalServerErrorException('Failed to download invoice file');
+        }
     }
 
     @Get('shops')
