@@ -68,7 +68,10 @@ export class TiktokController {
     }
 
     @Get('download/invoice')
-    async downloadInvoice(@Query('file') filePath: string, @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+    async downloadInvoice(
+        @Query('file') filePath: string,
+        @Res({ passthrough: true }) res: Response,
+    ): Promise<StreamableFile> {
         try {
             if (!filePath) {
                 throw new BadRequestException('File path is required');
@@ -83,7 +86,7 @@ export class TiktokController {
             if (filePath.startsWith('https://s3.') || filePath.startsWith('https://') && filePath.includes('.amazonaws.com')) {
                 return await this.downloadFromS3(filePath, res);
             } else {
-                return await this.downloadFromLocal(filePath, res);
+                throw new BadRequestException('Only S3 URLs are supported for invoice downloads');
             }
         } catch (error) {
             if (error instanceof HttpException) {
@@ -94,7 +97,10 @@ export class TiktokController {
         }
     }
 
-    private async downloadFromS3(s3Url: string, res: Response): Promise<StreamableFile> {
+    private async downloadFromS3(
+        s3Url: string, 
+        res: Response, 
+    ): Promise<StreamableFile> {
         try {
             // Parse S3 URL to extract bucket and key
             const url = new URL(s3Url);
@@ -117,8 +123,18 @@ export class TiktokController {
                 throw new NotFoundException('File not found in S3');
             }
 
-            // Extract filename for the download
-            const fileName = key.split('/').pop() || 'invoice.pdf';
+            console.log('response:', url);
+            // Extract sequence number from the original filename (without .pdf extension)
+            const originalFileName = key.split('/').pop() || 'invoice.pdf';
+            const sequenceNumber = originalFileName.replace('.pdf', '');
+            
+            // Generate timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Remove milliseconds and format
+            
+            // Generate customer-friendly filename
+            const fileName = `TikTok_Invoice_${sequenceNumber}_${timestamp}.pdf`;
+            
+        
 
             // Set response headers
             res.set({
@@ -136,31 +152,6 @@ export class TiktokController {
                 throw new NotFoundException('Invoice file not found in S3');
             }
             throw new InternalServerErrorException('Failed to download file from S3');
-        }
-    }
-
-    private async downloadFromLocal(filePath: string, res: Response): Promise<StreamableFile> {
-        try {
-            // Validate that the file exists
-            if (!existsSync(filePath)) {
-                throw new NotFoundException('Invoice file not found');
-            }
-
-            // Extract filename for the download
-            const fileName = filePath.split('/').pop() || 'invoice.pdf';
-
-            // Set response headers
-            res.set({
-                'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="${fileName}"`,
-            });
-
-            // Create and return the file stream
-            const file = createReadStream(filePath);
-            return new StreamableFile(file);
-        } catch (error) {
-            console.error('Local file download error:', error);
-            throw new InternalServerErrorException('Failed to download local file');
         }
     }
 

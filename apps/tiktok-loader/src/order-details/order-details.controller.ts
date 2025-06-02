@@ -21,7 +21,7 @@ export class OrderDetailsController {
         @Payload() payload: TransformedOrderDetailsDto
     ) {
         this.logger.log(
-            `[OrderDetailsController] Received tiktok.transformed_order_details: ${JSON.stringify(payload)}`
+            `[OrderDetailsController] Received tiktok.transformed_order_details: ${payload.orders?.length} orders`
         );
 
         if (payload?.orders?.length) {

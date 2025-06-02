@@ -9,15 +9,26 @@ interface OrderCardProps {
   order: Order;
   index: number;
   salesInvoices: SalesInvoice[];
+  isPollingInvoices?: boolean;
+  pollingAttempts?: number;
+  maxPollingAttempts?: number;
 }
 
-const OrderCard: React.FC<OrderCardProps> = ({ order, index, salesInvoices }) => {
+const OrderCard: React.FC<OrderCardProps> = ({ 
+  order, 
+  index, 
+  salesInvoices, 
+  isPollingInvoices = false,
+  pollingAttempts = 0,
+  maxPollingAttempts = 10
+}) => {
   const [showRawData, setShowRawData] = useState(false);
 
   // Handle nested order structure and map TikTok API fields
   const orderDetails = (order as any).order || order;
   
   const orderId = orderDetails.id || orderDetails.order_id || orderDetails.orderId || 'N/A';
+  const shopId = orderDetails.shop_id || orderDetails.shopId || (order as any).shop_id || (order as any).shopId;
   const status = orderDetails.status || orderDetails.order_status || 'Unknown';
   const createdTime = orderDetails.create_time || orderDetails.created_at || orderDetails.createdAt;
   const updateTime = orderDetails.update_time || orderDetails.updated_at || orderDetails.updatedAt;
@@ -49,8 +60,18 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index, salesInvoices }) =>
   
   // Check if sales invoices exist for this order
   const hasInvoices = salesInvoices && salesInvoices.length > 0;
-  const invoiceStatus = hasInvoices ? 'Available' : 'Not Generated';
-  const invoiceStatusClass = hasInvoices ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+  
+  // Determine invoice status based on polling state
+  let invoiceStatus = 'Not Generated';
+  let invoiceStatusClass = 'bg-red-100 text-red-800';
+  
+  if (isPollingInvoices) {
+    invoiceStatus = `Processing... (${pollingAttempts}/${maxPollingAttempts})`;
+    invoiceStatusClass = 'bg-yellow-100 text-yellow-800';
+  } else if (hasInvoices) {
+    invoiceStatus = 'Available';
+    invoiceStatusClass = 'bg-green-100 text-green-800';
+  }
 
   const createDetailRow = (label: string, value: string | number | undefined) => {
     if (!value || value === 'N/A' || value === null || value === undefined) return null;
@@ -80,7 +101,11 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index, salesInvoices }) =>
                 {status}
               </span>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${invoiceStatusClass}`}>
-                <i className="fas fa-receipt text-xs mr-2"></i>
+                {isPollingInvoices ? (
+                  <i className="fas fa-spinner fa-spin text-xs mr-2"></i>
+                ) : (
+                  <i className="fas fa-receipt text-xs mr-2"></i>
+                )}
                 Invoice: {invoiceStatus}
               </span>
             </div>
@@ -133,11 +158,16 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, index, salesInvoices }) =>
       </div>
       
       {/* Invoices Section */}
-      {hasInvoices && (
-        <div className="border-t border-gray-200">
-          <InvoicesSection salesInvoices={salesInvoices} />
-        </div>
-      )}
+      <div className="border-t border-gray-200">
+        <InvoicesSection 
+          salesInvoices={salesInvoices} 
+          isPollingInvoices={isPollingInvoices}
+          pollingAttempts={pollingAttempts}
+          maxPollingAttempts={maxPollingAttempts}
+          orderId={orderId}
+          shopId={shopId}
+        />
+      </div>
       
       {/* Address Section */}
       {recipientAddress && Object.keys(recipientAddress).length > 0 && (

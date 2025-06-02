@@ -1,6 +1,7 @@
 import { BadRequestException, Controller, Inject, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { MessagePattern, ClientProxy, RpcException } from '@nestjs/microservices';
 import { TiktokService } from './tiktok.service';
+import { SimpleDeduplicationService } from './simple-deduplication.service';
 import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
 import { ShopsService } from '@app/database-tiktok/shops/shops.service';
 import { CountersService } from '@app/database-scrooge/counters/counters.service';
@@ -14,6 +15,7 @@ export class TiktokController {
         private readonly countersService: CountersService,
         private readonly tiktokOrderService: TiktokOrderService,
         private readonly salesInvoiceService: SalesInvoiceService,
+        private readonly deduplicationService: SimpleDeduplicationService,
         @Inject('TIKTOK_TRANSFORMER_SERVICE')
         private readonly tiktokTransformerClient: ClientProxy
     ) {}
@@ -38,50 +40,74 @@ export class TiktokController {
 
     @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_ORDER_DETAILS)
     async getOrderDetails(params: { shop_id: string; order_id: string, name?: string, full_address?: string, tin?: string }) {
-        const shop = await this.shopsService.findByTiktokShopCode(params.shop_id);
+        const deduplicationKey = `order_details_${params.shop_id}_${params.order_id}`;
+        
+        const { result, fromCache, wasDuplicate } = await this.deduplicationService.processOnce(
+            deduplicationKey,
+            async () => {
+                const shop = await this.shopsService.findByTiktokShopCode(params.shop_id);
 
-        if (!shop) {
-            throw new BadRequestException('Shop do not exists');
-        }
+                if (!shop) {
+                    throw new RpcException(new NotFoundException(`Shop not found for shop_id: ${params.shop_id}`));
+                }
 
-        const { access_token, tiktok_shop_cipher, tiktok_shop_code } = shop;
+                const { access_token, tiktok_shop_cipher, tiktok_shop_code } = shop;
 
-        const getOrderDetailsParams = {
-            ids: [params.order_id],
-            accessToken: access_token,
-            shopCipher: tiktok_shop_cipher,
-            tiktokShopCode: tiktok_shop_code,
-        };
+                const getOrderDetailsParams = {
+                    ids: [params.order_id],
+                    accessToken: access_token,
+                    shopCipher: tiktok_shop_cipher,
+                    tiktokShopCode: tiktok_shop_code,
+                };
 
-        const result = await this.tiktokService.getOrderDetails(
-            getOrderDetailsParams
+                const apiResult = await this.tiktokService.getOrderDetails(getOrderDetailsParams);
+
+                // Validate API result structure
+                if (!apiResult || !apiResult.data) {
+                    throw new RpcException(new NotFoundException(`Invalid API response for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
+                }
+
+                if (!apiResult.data.orders || apiResult.data.orders.length === 0) {
+                    throw new RpcException(new NotFoundException(`Order not found in tiktok for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
+                }
+                
+                return { apiResult, shop };
+            },
+            300 // Cache for 5 minutes
         );
 
-        if (result.data.orders && result.data.orders.length > 0) {
+        if (wasDuplicate) {
+            return { message: 'Request already processed or in progress' };
+        }
+
+        if (!result) {
+            throw new RpcException(new InternalServerErrorException('Failed to process request'));
+        }
+
+        // Only emit the event if this is fresh data (not from cache)
+        if (!fromCache && result && result.apiResult && result.apiResult.data && result.apiResult.data.orders && result.apiResult.data.orders.length > 0) {
+            console.log(`🔥 EMITTING tiktok.raw_order_details for fresh data: ${params.shop_id}_${params.order_id}`);
             this.tiktokTransformerClient.emit('tiktok.raw_order_details', {
-                orders: result.data.orders,
-                shop: shop,
+                orders: result.apiResult.data.orders,
+                shop: result.shop,
                 customer_info: {
                     name: params.name,
                     full_address: params.full_address,
                     tin: params.tin
                 }
             });
-        }else {
-            console.error(`Order not found for shop_id: ${params.shop_id}, order_id: ${params.order_id}`);
-            throw new RpcException(new NotFoundException(`Order not found in tiktok for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
+        } else if (fromCache) {
+            console.log(`📦 CACHED RESULT - NOT EMITTING for: ${params.shop_id}_${params.order_id}`);
         }
-        return result;
+
+        return result.apiResult;
     }
 
     @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_SUPPORT_ORDER_DETAILS)
     async getSupportOrderDetails(params: { shop_id: string; order_id: string }) {
         try {
-            console.log('TikTok Fetcher - getSupportOrderDetails called with:', params);
-            
             // Validate required parameters
             if (!params.shop_id || !params.order_id) {
-                console.error('Missing required parameters:', params);
                 throw new RpcException(new BadRequestException('Both shop_id and order_id are required'));
             }
             
@@ -92,19 +118,14 @@ export class TiktokController {
             });
 
             if (!order) {
-                console.error(`Order not found for shop_id: ${params.shop_id}, order_id: ${params.order_id}`);
                 throw new RpcException(new NotFoundException(`Order not found in database for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
             }
-            
-            console.log('Order found successfully:', order.id);
             
             // Return formatted result with database order information
             return {
                 order
             };
         } catch (error) {
-            console.error('Error in TikTok Fetcher getSupportOrderDetails:', error);
-            
             // Re-throw RpcExceptions as-is
             if (error instanceof RpcException) {
                 throw error;
@@ -118,18 +139,13 @@ export class TiktokController {
     @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_SALES_INVOICES)
     async getSalesInvoices(params: { shop_id: string; order_id: string }) {
         try {
-            console.log('TikTok Fetcher - getSalesInvoices called with:', params);
-            
             // Validate required parameters
             if (!params.shop_id || !params.order_id) {
-                console.error('Missing required parameters:', params);
                 throw new RpcException(new BadRequestException('Both shop_id and order_id are required'));
             }
       
             // Fetch sales invoices for the order
             const salesInvoices = await this.salesInvoiceService.findByOrder(params.order_id, params.shop_id);
-            
-            console.log(`Found ${salesInvoices.length} sales invoices for order ${params.order_id}`);
             
             return {
                 success: true,
@@ -137,8 +153,6 @@ export class TiktokController {
                 count: salesInvoices.length,
             };
         } catch (error) {
-            console.error('Error in TikTok Fetcher getSalesInvoices:', error);
-            
             // Re-throw RpcExceptions as-is
             if (error instanceof RpcException) {
                 throw error;
@@ -160,8 +174,27 @@ export class TiktokController {
                 tiktok_shop_code: shop.tiktok_shop_code
             }));
         } catch (error) {
-            console.error('Error fetching shops:', error);
             throw new BadRequestException('Failed to fetch shops');
+        }
+    }
+
+    @MessagePattern('tiktok.get_deduplication_metrics')
+    async getDeduplicationMetrics() {
+        try {
+            const metrics = this.deduplicationService.getMetrics();
+            return metrics;
+        } catch (error) {
+            throw new BadRequestException('Failed to fetch deduplication metrics');
+        }
+    }
+
+    @MessagePattern('tiktok.reset_deduplication_metrics')
+    async resetDeduplicationMetrics() {
+        try {
+            this.deduplicationService.resetMetrics();
+            return { message: 'Deduplication metrics reset successfully' };
+        } catch (error) {
+            throw new BadRequestException('Failed to reset deduplication metrics');
         }
     }
 }

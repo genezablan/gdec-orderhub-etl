@@ -56,7 +56,6 @@ export class TiktokReceiptController {
     @MessagePattern('tiktok.order_loaded')
     async handleOrderLoaded(payload: any) {
         console.log('Received tiktok.order_loaded:', payload);
-        
         const orderWithItems = await this.fetchOrderWithItems(payload);
         
         if (orderWithItems && orderWithItems.items) {
@@ -67,13 +66,10 @@ export class TiktokReceiptController {
                 ...orderWithItems,
                 items: aggregatedItems
             };
-            console.log('Aggregated items:', aggregatedItems);
-
             const itemsByPackage = this.groupItemsByPackage(orderWithAggregatedItems);
             await this.generateInvoicesForPackages(itemsByPackage, orderWithItems, payload.orderId);
+            console.log(`Invoices generated for order ${payload.orderId} with ${Object.keys(itemsByPackage).length} packages.`);
         }
-
-        console.log(orderWithItems);
     }
 
     private async fetchOrderWithItems(payload: any): Promise<TiktokOrderDto | null> {

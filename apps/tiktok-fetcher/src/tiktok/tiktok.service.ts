@@ -184,7 +184,6 @@ export class TiktokService {
             });
 
         console.log('[TikTok Service] Order details response:', {
-            status: response?.statusCode,
             message: response?.message,
             ordersCount: response?.data?.orders?.length
         });

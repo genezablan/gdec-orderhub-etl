@@ -89,9 +89,6 @@ export class TiktokOrderItemService {
                     }
                 }
                 Object.assign(entity, data);
-                this.logger.log(
-                    `Updating existing order item: ${JSON.stringify(entity)}`
-                );
                 return await this.repo.save(entity);
             } else {
                 this.logger.log(

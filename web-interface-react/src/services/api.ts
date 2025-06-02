@@ -57,15 +57,15 @@ class ApiService {
       throw new Error(`Failed to download invoice: ${response.status}`);
     }
     
-    // Get the filename from the Content-Disposition header if available
-    const contentDisposition = response.headers.get('Content-Disposition');
-    let filename = 'invoice.pdf';
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-      if (filenameMatch) {
-        filename = filenameMatch[1];
-      }
-    }
+    // Extract original filename from the S3 URL
+    const originalFileName = filePath.split('/').pop() || 'invoice.pdf';
+    const fileNameWithoutExtension = originalFileName.replace('.pdf', '');
+    
+    // Generate timestamp
+    const timestamp = Date.now().toString();
+    
+    // Create filename with original name + timestamp
+    const filename = `${fileNameWithoutExtension}_${timestamp}.pdf`;
     
     // Convert response to blob and trigger download
     const blob = await response.blob();

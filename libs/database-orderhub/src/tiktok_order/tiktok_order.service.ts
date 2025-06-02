@@ -58,7 +58,7 @@ export class TiktokOrderService {
                 }
                 Object.assign(entity, data);
                 this.logger.log(
-                    `Updating existing order: ${JSON.stringify(entity)}`
+                    `Updating existing order: ${JSON.stringify(where)}`
                 );
                 return await this.repo.save(entity);
             } else {

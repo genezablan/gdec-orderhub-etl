@@ -5,9 +5,18 @@ import OrderCard from './OrderCard';
 interface OrderResultsProps {
   orderData: OrderData;
   salesInvoices: SalesInvoice[];
+  isPollingInvoices?: boolean;
+  pollingAttempts?: number;
+  maxPollingAttempts?: number;
 }
 
-const OrderResults: React.FC<OrderResultsProps> = ({ orderData, salesInvoices }) => {
+const OrderResults: React.FC<OrderResultsProps> = ({ 
+  orderData, 
+  salesInvoices, 
+  isPollingInvoices = false,
+  pollingAttempts = 0,
+  maxPollingAttempts = 10
+}) => {
   // Handle nested response structure from TikTok API
   let orders: any[] = [];
   
@@ -64,6 +73,9 @@ const OrderResults: React.FC<OrderResultsProps> = ({ orderData, salesInvoices })
             order={order}
             index={index}
             salesInvoices={salesInvoices}
+            isPollingInvoices={isPollingInvoices}
+            pollingAttempts={pollingAttempts}
+            maxPollingAttempts={maxPollingAttempts}
           />
         ))}
       </div>

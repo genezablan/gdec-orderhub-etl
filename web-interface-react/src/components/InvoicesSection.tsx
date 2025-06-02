@@ -5,9 +5,45 @@ import { apiService } from '../services/api';
 
 interface InvoicesSectionProps {
   salesInvoices: SalesInvoice[];
+  isPollingInvoices?: boolean;
+  pollingAttempts?: number;
+  maxPollingAttempts?: number;
+  orderId?: string;
+  shopId?: string;
 }
 
-const InvoicesSection: React.FC<InvoicesSectionProps> = ({ salesInvoices }) => {
+const InvoicesSection: React.FC<InvoicesSectionProps> = ({ 
+  salesInvoices, 
+  isPollingInvoices = false,
+  pollingAttempts = 0,
+  maxPollingAttempts = 10,
+  orderId,
+  shopId
+}) => {
+  // Show polling message if currently polling and no invoices yet
+  if (isPollingInvoices && (!salesInvoices || salesInvoices.length === 0)) {
+    return (
+      <div className="px-6 py-5">
+        <h5 className="text-sm font-semibold text-gray-800 mb-4 uppercase tracking-wide">
+          <i className="fas fa-spinner fa-spin mr-2"></i>Sales Invoices - Processing
+        </h5>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <i className="fas fa-clock text-yellow-600 mr-3"></i>
+            <div>
+              <div className="text-sm font-medium text-yellow-800">
+                Generating sales invoices... ({pollingAttempts}/{maxPollingAttempts})
+              </div>
+              <div className="text-xs text-yellow-600 mt-1">
+                This may take a few moments. Please wait while we process your request.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   if (!salesInvoices || salesInvoices.length === 0) return null;
   
   const handleDownloadInvoice = async (filePath: string, sequenceNumber: string) => {

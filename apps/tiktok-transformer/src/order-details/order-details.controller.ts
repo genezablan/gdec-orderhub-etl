@@ -19,7 +19,7 @@ export class OrderDetailsController {
     ): TransformedOrderDetailsDto {
         this.logger.log(
             '[OrderDetailsController] Received tiktok.raw_order_details:',
-            payload
+            payload.orders?.length.toString() + ' orders'
         );
         const transformedOrderDetails =
             this.orderDetailsService.transformRawOrderDetails(payload);

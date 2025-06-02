@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './Header';
 import OrderForm from './OrderForm';
 import LoadingCard from './LoadingCard';
@@ -16,9 +16,20 @@ const TikTokOrderChecker: React.FC = () => {
   const [salesInvoices, setSalesInvoices] = useState<SalesInvoice[]>([]);
   const [error, setError] = useState<string>('');
   const [showResults, setShowResults] = useState<boolean>(false);
+  const [isPollingInvoices, setIsPollingInvoices] = useState<boolean>(false);
+  const [pollingAttempts, setPollingAttempts] = useState<number>(0);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const maxPollingAttempts = 10; // Poll for 30 seconds (10 attempts * 3 seconds)
 
   useEffect(() => {
     loadShops();
+    
+    // Cleanup polling interval on component unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
   }, []);
 
   const loadShops = async () => {
@@ -29,6 +40,58 @@ const TikTokOrderChecker: React.FC = () => {
       console.error('Error loading shops:', error);
       setError(`Failed to load shops: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  };
+
+  const pollForInvoices = async (shopId: string, orderIdValue: string) => {
+    try {
+      const invoicesResponse = await apiService.getSalesInvoices(shopId, orderIdValue);
+      
+      if (invoicesResponse && invoicesResponse.length > 0) {
+        // Invoices found, stop polling
+        setSalesInvoices(invoicesResponse);
+        setIsPollingInvoices(false);
+        setPollingAttempts(0);
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+        console.log(`✅ Found ${invoicesResponse.length} invoices after polling`);
+      } else {
+        // No invoices yet, continue polling
+        setPollingAttempts(prev => prev + 1);
+        console.log(`🔄 Polling attempt ${pollingAttempts + 1}/${maxPollingAttempts} for invoices`);
+      }
+    } catch (error) {
+      console.warn('Error during invoice polling:', error);
+      setPollingAttempts(prev => prev + 1);
+    }
+  };
+
+  const startInvoicePolling = (shopId: string, orderIdValue: string) => {
+    setIsPollingInvoices(true);
+    setPollingAttempts(0);
+    
+    // Clear any existing polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Start polling every 3 seconds
+    pollingIntervalRef.current = setInterval(() => {
+      if (pollingAttempts >= maxPollingAttempts) {
+        // Max attempts reached, stop polling
+        setIsPollingInvoices(false);
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+        console.log('⏰ Max polling attempts reached for invoices');
+        return;
+      }
+      
+      pollForInvoices(shopId, orderIdValue);
+    }, 3000);
+    
+    // Also check immediately
+    pollForInvoices(shopId, orderIdValue);
   };
 
   const handleFormSubmit = async (shopId: string, orderIdValue: string) => {
@@ -42,19 +105,36 @@ const TikTokOrderChecker: React.FC = () => {
     setShowResults(false);
     setOrderData(null);
     setSalesInvoices([]);
+    setIsPollingInvoices(false);
+    setPollingAttempts(0);
+    
+    // Clear any existing polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
 
     try {
       // Fetch order details
       const orderResponse = await apiService.getOrderDetails(shopId, orderIdValue);
       setOrderData(orderResponse);
 
-      // Fetch sales invoices
+      // Try to fetch sales invoices immediately
       try {
         const invoicesResponse = await apiService.getSalesInvoices(shopId, orderIdValue);
-        setSalesInvoices(invoicesResponse);
+        
+        if (invoicesResponse && invoicesResponse.length > 0) {
+          // Invoices found immediately
+          setSalesInvoices(invoicesResponse);
+          console.log(`✅ Found ${invoicesResponse.length} invoices immediately`);
+        } else {
+          // No invoices found, start polling
+          console.log('📋 No invoices found immediately, starting polling...');
+          startInvoicePolling(shopId, orderIdValue);
+        }
       } catch (invoiceError) {
-        console.warn('Could not fetch sales invoices:', invoiceError);
-        setSalesInvoices([]);
+        console.warn('Could not fetch sales invoices initially, starting polling:', invoiceError);
+        // Start polling even if initial request failed
+        startInvoicePolling(shopId, orderIdValue);
       }
 
       setShowResults(true);
@@ -99,7 +179,10 @@ const TikTokOrderChecker: React.FC = () => {
             {showResults && !isLoading && orderData && (
               <OrderResults 
                 orderData={orderData} 
-                salesInvoices={salesInvoices} 
+                salesInvoices={salesInvoices}
+                isPollingInvoices={isPollingInvoices}
+                pollingAttempts={pollingAttempts}
+                maxPollingAttempts={maxPollingAttempts}
               />
             )}
 
