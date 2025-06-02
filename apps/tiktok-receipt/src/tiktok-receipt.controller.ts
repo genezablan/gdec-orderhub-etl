@@ -188,6 +188,18 @@ export class TiktokReceiptController {
     ): Promise<void> {
         for (const [packageId, packageItems] of Object.entries(itemsByPackage)) {
             if (packageItems && packageItems.length > 0) {
+                // Check if invoice already exists for this package
+                const existingInvoice = await this.salesInvoiceService.findOne({
+                    orderId: orderId,
+                    shopId: orderWithItems.shopId,
+                    packageId: packageId
+                });
+
+                if (existingInvoice) {
+                    console.log(`Invoice already exists for package ${packageId} (sequence: ${existingInvoice.sequenceNumber}). Skipping generation.`);
+                    continue;
+                }
+
                 await this.generateInvoiceForPackage(packageId, packageItems, orderWithItems, orderId);
             }
         }
