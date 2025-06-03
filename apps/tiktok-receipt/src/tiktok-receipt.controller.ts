@@ -233,7 +233,8 @@ export class TiktokReceiptController {
         let finalFilePath: string;
         try {
             const bucketName = process.env.AWS_S3_BUCKET_NAME || 'gdec-orderhub-invoices';
-            const s3Key = `invoices/tiktok/${orderWithItems.shopId}/${orderId}/${packageId}/${sequenceNumber}.pdf`;
+            const stage = process.env.NODE_ENV || 'development';
+            const s3Key = `${stage}/invoices/tiktok/${orderWithItems.shopId}/${orderId}/${packageId}/${sequenceNumber}.pdf`;
             
             finalFilePath = await this.uploadToS3(pdfBuffer, bucketName, s3Key);
             console.log(`Successfully uploaded invoice to S3: ${finalFilePath}`);
@@ -319,7 +320,8 @@ export class TiktokReceiptController {
         try {
             const testBuffer = Buffer.from('Test content for S3 upload from NestJS controller');
             const bucketName = process.env.AWS_S3_BUCKET_NAME || 'gdec-orderhub-invoices';
-            const key = `debug/test-upload-${Date.now()}.txt`;
+            const stage = process.env.NODE_ENV || 'development';
+            const key = `${stage}/debug/test-upload-${Date.now()}.txt`;
             
             const result = await this.uploadToS3(testBuffer, bucketName, key);
             
