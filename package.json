@@ -37,7 +37,7 @@
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
-    "@nestjs/mapped-types": "*",
+    "@nestjs/mapped-types": "^2.0.5",
     "@nestjs/microservices": "^11.1.2",
     "@nestjs/mongoose": "^11.0.3",
     "@nestjs/platform-express": "^11.0.1",
@@ -60,6 +60,7 @@
     "redis": "^4.7.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "typeorm": "^0.3.20",
     "winston": "^3.17.0"
   },
   "devDependencies": {
@@ -119,6 +120,7 @@
       "^@app/database-orderhub(|/.*)$": "<rootDir>/libs/database-orderhub/src/$1",
       "^@app/database-scrooge(|/.*)$": "<rootDir>/libs/database-scrooge/src/$1",
       "^@app/database-tiktok(|/.*)$": "<rootDir>/libs/database-tiktok/src/$1",
+      "^@app/health(|/.*)$": "<rootDir>/libs/health/src/$1",
       "^@app/logging(|/.*)$": "<rootDir>/libs/logging/src/$1"
     }
   }
