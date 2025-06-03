@@ -40,7 +40,21 @@ export class TiktokReceiptService {
             fs.mkdirSync(dir, { recursive: true });
         }
         const html = this.renderReceiptHtml(data);
-        const browser = await puppeteer.launch();
+        const browser = await puppeteer.launch({
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-web-security',
+                '--disable-extensions',
+                '--no-first-run',
+                '--disable-default-apps',
+                '--hide-scrollbars',
+                '--mute-audio'
+            ],
+            headless: true
+        });
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
         await page.pdf({ path: outputPath, format: 'A4' });
@@ -49,7 +63,21 @@ export class TiktokReceiptService {
 
     async generatePdfBuffer(data: ReceiptDto): Promise<Buffer> {
         const html = this.renderReceiptHtml(data);
-        const browser = await puppeteer.launch();
+        const browser = await puppeteer.launch({
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-web-security',
+                '--disable-extensions',
+                '--no-first-run',
+                '--disable-default-apps',
+                '--hide-scrollbars',
+                '--mute-audio'
+            ],
+            headless: true
+        });
         const page = await browser.newPage();
         await page.setContent(html, { waitUntil: 'networkidle0' });
         const pdfData = await page.pdf({ format: 'A4' });
