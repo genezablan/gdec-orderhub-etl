@@ -9,7 +9,7 @@ async function bootstrap() {
     
     // Enable CORS for web interface
     app.enableCors({
-        origin: ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:8000', 'http://127.0.0.1:8000'],
+        origin: ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:8000', 'http://127.0.0.1:8000','http://master.d2gn6xxesc0itl.amplifyapp.com'],
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         allowedHeaders: ['Content-Type', 'Authorization'],
     });
