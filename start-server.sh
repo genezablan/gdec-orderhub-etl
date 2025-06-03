@@ -22,27 +22,18 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
-# Load environment variables from .env file
-echo "🔧 Loading environment variables from .env..."
-export $(grep -v '^#' .env | xargs)
+# Stop and delete existing processes
+echo "🛑 Stopping existing PM2 processes..."
+pm2 stop all 2>/dev/null || true
+pm2 delete all 2>/dev/null || true
 
-# Start all services with PM2
-echo "🔧 Starting microservices with environment variables..."
+# Create logs directory if it doesn't exist
+echo "📁 Creating logs directory..."
+mkdir -p logs
 
-# API Gateway (Port 3000)
-pm2 start dist/apps/api-gateway/main.js --name "api-gateway"
-
-# TikTok Fetcher (Port 3001)
-pm2 start dist/apps/tiktok-fetcher/main.js --name "tiktok-fetcher"
-
-# TikTok Transformer (Port 3002)
-pm2 start dist/apps/tiktok-transformer/main.js --name "tiktok-transformer"
-
-# TikTok Loader (Port 3003)
-pm2 start dist/apps/tiktok-loader/main.js --name "tiktok-loader"
-
-# TikTok Receipt (Port 3004)
-pm2 start dist/apps/tiktok-receipt/main.js --name "tiktok-receipt"
+# Start all services using ecosystem config
+echo "🔧 Starting microservices with ecosystem configuration..."
+pm2 start ecosystem.config.js
 
 # Save PM2 configuration
 pm2 save
@@ -51,14 +42,19 @@ pm2 save
 echo "✅ All services started! Current PM2 status:"
 pm2 status
 
-echo "📊 To monitor services:"
-echo "  pm2 monit"
 echo ""
-echo "🔄 To restart all services:"
-echo "  pm2 restart all"
+echo "📊 Useful PM2 commands:"
+echo "  pm2 status           - Show status of all services"
+echo "  pm2 monit            - Monitor services in real-time"
+echo "  pm2 logs             - Show logs for all services"
+echo "  pm2 logs [app-name]  - Show logs for specific service"
+echo "  pm2 restart all      - Restart all services"
+echo "  pm2 stop all         - Stop all services"
+echo "  pm2 delete all       - Delete all services"
 echo ""
-echo "🛑 To stop all services:"
-echo "  pm2 stop all"
-echo ""
-echo "🗑️ To delete all services:"
-echo "  pm2 delete all"
+echo "🗂️ Log files are stored in the 'logs' directory:"
+echo "  logs/api-gateway-*.log"
+echo "  logs/tiktok-fetcher-*.log"
+echo "  logs/tiktok-transformer-*.log"
+echo "  logs/tiktok-loader-*.log"
+echo "  logs/tiktok-receipt-*.log"
