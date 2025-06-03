@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 module.exports = {
   apps: [
     {
@@ -7,14 +9,15 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
-      env_file: '.env',
       env: {
         NODE_ENV: 'development',
-        PORT: 3000
+        PORT: 3000,
+        ...process.env
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        ...process.env
       },
       error_file: 'logs/api-gateway-error.log',
       out_file: 'logs/api-gateway-out.log',
@@ -28,14 +31,15 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
-      env_file: '.env',
       env: {
         NODE_ENV: 'development',
-        PORT: 3001
+        PORT: 3001,
+        ...process.env
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3001
+        PORT: 3001,
+        ...process.env
       },
       error_file: 'logs/tiktok-fetcher-error.log',
       out_file: 'logs/tiktok-fetcher-out.log',
@@ -49,14 +53,15 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
-      env_file: '.env',
       env: {
         NODE_ENV: 'development',
-        PORT: 3002
+        PORT: 3002,
+        ...process.env
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3002
+        PORT: 3002,
+        ...process.env
       },
       error_file: 'logs/tiktok-transformer-error.log',
       out_file: 'logs/tiktok-transformer-out.log',
@@ -70,14 +75,15 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
-      env_file: '.env',
       env: {
         NODE_ENV: 'development',
-        PORT: 3003
+        PORT: 3003,
+        ...process.env
       },
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3003
+        PORT: 3003,
+        ...process.env
       },
       error_file: 'logs/tiktok-loader-error.log',
       out_file: 'logs/tiktok-loader-out.log',
@@ -91,16 +97,17 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
-      env_file: '.env',
       env: {
         NODE_ENV: 'development',
         PORT: 3004,
-        PUPPETEER_ARGS: '--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu'
+        PUPPETEER_ARGS: '--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu',
+        ...process.env
       },
       env_production: {
         NODE_ENV: 'production',
         PORT: 3004,
-        PUPPETEER_ARGS: '--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu'
+        PUPPETEER_ARGS: '--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu',
+        ...process.env
       },
       error_file: 'logs/tiktok-receipt-error.log',
       out_file: 'logs/tiktok-receipt-out.log',

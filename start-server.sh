@@ -22,6 +22,15 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
+# Verify dotenv can load the environment
+echo "🔧 Verifying environment variables..."
+node -e "
+require('dotenv').config();
+console.log('✅ NODE_ENV:', process.env.NODE_ENV || 'undefined');
+console.log('✅ MONGODB_SCROOGE_URI:', process.env.MONGODB_SCROOGE_URI ? process.env.MONGODB_SCROOGE_URI.substring(0, 50) + '...' : 'undefined');
+console.log('✅ ORDERHUB_DB_HOST:', process.env.ORDERHUB_DB_HOST || 'undefined');
+"
+
 # Stop and delete existing processes
 echo "🛑 Stopping existing PM2 processes..."
 pm2 stop all 2>/dev/null || true
