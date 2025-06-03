@@ -7,11 +7,26 @@ import { AllExceptionsFilter } from './all-exceptions.filter';
 async function bootstrap() {
     const app = await NestFactory.create(ApiGatewayModule);
     
-    // Enable CORS for web interface
+       // Enable CORS for web interface
     app.enableCors({
-        origin: ['http://localhost:8080', 'http://127.0.0.1:8080', 'http://localhost:8000', 'http://127.0.0.1:8000','http://master.d2gn6xxesc0itl.amplifyapp.com'],
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        origin: [
+            'http://localhost:8080', 
+            'http://127.0.0.1:8080', 
+            'http://localhost:8000', 
+            'http://127.0.0.1:8000',
+            'https://master.d2gn6xxesc0itl.amplifyapp.com', // Fixed: HTTPS instead of HTTP
+            'https://dwqh4uem5zqma.cloudfront.net' // Added CloudFront domain
+        ],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: [
+            'Content-Type', 
+            'Authorization',
+            'Origin',
+            'X-Requested-With',
+            'Accept',
+            'X-API-Key'
+        ],
+        credentials: true, // Added this for cookie/auth support
     });
     
     // Set up global logging
