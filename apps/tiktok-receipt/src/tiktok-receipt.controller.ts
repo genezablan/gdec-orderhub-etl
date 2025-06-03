@@ -10,6 +10,7 @@ import { ItemsByPackageDto, PackageOrderDto } from './dto';
 import * as path from 'path';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
+import { HealthService } from '@app/health';
 
 @Controller()
 export class TiktokReceiptController {
@@ -20,7 +21,8 @@ export class TiktokReceiptController {
         private readonly tiktokReceiptService: TiktokReceiptService,
         private readonly counterService: CountersService,
         private readonly salesInvoiceService: SalesInvoiceService,
-        private readonly configService: ConfigService
+        private readonly configService: ConfigService,
+        private readonly healthService: HealthService
     ) {
         // Get AWS configuration from config service
         const awsRegion = this.configService.get<string>('aws.region') || process.env.AWS_REGION || 'ap-southeast-1';
@@ -266,6 +268,11 @@ export class TiktokReceiptController {
         }
         
         console.log(`Generated sales invoice for package ${packageId}: ${finalFilePath}`);
+    }
+
+    @Get('health')
+    getHealth() {
+        return this.healthService.getHealthStatus('tiktok-receipt');
     }
 
     @Get('sales-invoices/:orderId/:shopId')

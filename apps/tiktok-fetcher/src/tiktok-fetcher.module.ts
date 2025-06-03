@@ -10,6 +10,7 @@ import { HttpClientService } from './http-client/http-client.service';
 import { DatabaseTiktokModule } from '@app/database-tiktok';
 import { DatabaseScroogeModule } from '@app/database-scrooge';
 import { DatabaseOrderhubModule } from '@app/database-orderhub';
+import { HealthService } from '@app/health';
 
 @Module({
     imports: [
@@ -34,6 +35,6 @@ import { DatabaseOrderhubModule } from '@app/database-orderhub';
     ],
 
     controllers: [TiktokFetcherController],
-    providers: [TiktokFetcherService, TiktokService, HttpClientService],
+    providers: [TiktokFetcherService, TiktokService, HttpClientService, HealthService],
 })
 export class TiktokFetcherModule {}

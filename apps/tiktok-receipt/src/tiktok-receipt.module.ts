@@ -6,6 +6,7 @@ import { DatabaseOrderhubModule, databaseConfig } from '@app/database-orderhub';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseScroogeModule } from '@app/database-scrooge';
+import { HealthService } from '@app/health';
 import awsConfig from './config/aws.config';
 
 @Module({
@@ -20,6 +21,6 @@ import awsConfig from './config/aws.config';
         }),
     ],
     controllers: [TiktokReceiptController],
-    providers: [TiktokReceiptService],
+    providers: [TiktokReceiptService, HealthService],
 })
 export class TiktokReceiptModule {}

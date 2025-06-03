@@ -5,6 +5,7 @@ import { TiktokTransformerService } from './tiktok-transformer.service';
 import { ReceiptModule } from './receipt/receipt.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule } from '@nestjs/config';
+import { HealthService } from '@app/health';
 
 @Module({
     imports: [
@@ -25,6 +26,6 @@ import { ConfigModule } from '@nestjs/config';
         ]),
     ],
     controllers: [TiktokTransformerController],
-    providers: [TiktokTransformerService],
+    providers: [TiktokTransformerService, HealthService],
 })
 export class TiktokTransformerModule {}

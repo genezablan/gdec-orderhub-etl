@@ -6,6 +6,7 @@ import { OrderDetailsModule } from './order-details/order-details.module';
 import { DatabaseOrderhubModule } from '@app/database-orderhub';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { HealthService } from '@app/health';
 
 @Module({
     imports: [
@@ -27,6 +28,6 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
         ]),
     ],
     controllers: [TiktokLoaderController],
-    providers: [TiktokLoaderService],
+    providers: [TiktokLoaderService, HealthService],
 })
 export class TiktokLoaderModule {}

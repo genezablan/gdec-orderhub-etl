@@ -5,6 +5,7 @@ import { ApiGatewayService } from './api-gateway.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TiktokModule } from './tiktok/tiktok.module';
 import { ConfigModule } from '@nestjs/config';
+import { HealthService } from '@app/health';
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -24,6 +25,6 @@ import { ConfigModule } from '@nestjs/config';
         TiktokModule,
     ],
     controllers: [ApiGatewayController],
-    providers: [ApiGatewayService],
+    providers: [ApiGatewayService, HealthService],
 })
 export class ApiGatewayModule {}
