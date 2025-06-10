@@ -8,6 +8,7 @@ import {
   AdminInitiateAuthCommand,
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
+  AdminGetUserCommand,
   GetUserCommand,
   AuthFlowType,
   ChallengeNameType,
@@ -166,28 +167,26 @@ export class AuthService {
     // Validate domain before creating user
     this.validateEmailDomain(email);
     
+    this.logger.log(`Checking if user exists: ${email}`);
+    
     try {
-      // Try to get user info to see if they exist
-      const command = new AdminInitiateAuthCommand({
+      // Use AdminGetUser to check if user exists
+      const getUserCommand = new AdminGetUserCommand({
         UserPoolId: this.userPoolId,
-        ClientId: this.clientId,
-        AuthFlow: AuthFlowType.ADMIN_NO_SRP_AUTH,
-        AuthParameters: {
-          USERNAME: email,
-          PASSWORD: 'dummy-password', // This will fail but tells us if user exists
-        },
+        Username: email,
       });
 
-      await this.cognitoClient.send(command);
+      await this.cognitoClient.send(getUserCommand);
+      this.logger.log(`User ${email} already exists`);
+      
     } catch (error) {
       if (error.name === 'UserNotFoundException') {
         // User doesn't exist, create them
+        this.logger.log(`User ${email} not found, creating...`);
         await this.createUserAndSendCode(email);
-      } else if (error.name === 'NotAuthorizedException') {
-        // User exists but password is wrong (expected for our dummy password)
-        this.logger.log(`User ${email} already exists`);
       } else {
         this.logger.error('Error checking user existence:', error);
+        throw error;
       }
     }
   }
