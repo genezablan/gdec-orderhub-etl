@@ -94,6 +94,9 @@ export class AuthService {
     try {
       const { email } = signInDto;
       
+      // Validate email domain first
+      this.validateEmailDomain(email);
+      
       this.logger.log(`Initiating passwordless sign-in for ${email}`);
       
       // First, ensure user exists
@@ -160,6 +163,9 @@ export class AuthService {
    * Ensure user exists in Cognito, create if they don't
    */
   private async ensureUserExists(email: string): Promise<void> {
+    // Validate domain before creating user
+    this.validateEmailDomain(email);
+    
     try {
       // Try to get user info to see if they exist
       const command = new AdminInitiateAuthCommand({
@@ -273,6 +279,9 @@ export class AuthService {
   async verifyPasswordlessCode(verifyDto: VerifyCodeDto): Promise<AuthResult> {
     try {
       const { email, code, session } = verifyDto;
+      
+      // Validate email domain
+      this.validateEmailDomain(email);
       
       this.logger.log(`Attempting to verify code for email: ${email}`);
       
@@ -440,5 +449,23 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Invalid token');
     }
+  }
+
+  /**
+   * Validate that email belongs to allowed domain
+   */
+  private validateEmailDomain(email: string): void {
+    const allowedDomainsConfig = this.configService.get<string>('ALLOWED_EMAIL_DOMAINS') || 'greatdealscorp.com';
+    const allowedDomains = allowedDomainsConfig.split(',').map(domain => domain.trim().toLowerCase());
+    const emailDomain = email.split('@')[1]?.toLowerCase();
+    
+    if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+      this.logger.warn(`Access denied for email domain: ${emailDomain}. Allowed domains: ${allowedDomains.join(', ')}`);
+      throw new UnauthorizedException(
+        'Access restricted to authorized company domains only. Please use your company email address.'
+      );
+    }
+    
+    this.logger.log(`Email domain validated: ${emailDomain}`);
   }
 }
