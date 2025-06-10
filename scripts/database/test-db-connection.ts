@@ -2,10 +2,10 @@
 
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
-import { AppDataSource } from '../libs/database-orderhub/src/data_source';
+import { AppDataSource } from '../../libs/database-orderhub/src/data_source';
 
 // Load environment variables from root .env file
-dotenv.config({ path: resolve(__dirname, '../.env') });
+dotenv.config({ path: resolve(__dirname, '../../.env') });
 
 async function testDatabaseConnection() {
     try {

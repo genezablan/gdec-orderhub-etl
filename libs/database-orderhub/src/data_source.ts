@@ -18,8 +18,9 @@ export const AppDataSource = new DataSource({
         ? parseInt(process.env.ORDERHUB_DB_PORT)
         : 5432,
     username: process.env.ORDERHUB_DB_USERNAME || 'postgres',
-    password: process.env.ORDERHUB_DB_PASSWORD || '',
-    database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',    entities: [TiktokOrder, TiktokOrderItem, SalesInvoice],
+    password: String(process.env.ORDERHUB_DB_PASSWORD || ''),
+    database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',
+    entities: [TiktokOrder, TiktokOrderItem, SalesInvoice],
     migrations: [path.resolve(__dirname, 'migrations/*.ts')],
     migrationsRun: false,
     synchronize: false, // Should be false in production

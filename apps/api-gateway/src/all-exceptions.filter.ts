@@ -3,6 +3,9 @@ import {
   Catch,
   ArgumentsHost,
   BadRequestException,
+  UnauthorizedException,
+  NotFoundException,
+  HttpException,
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { Response, Request } from 'express';
@@ -20,11 +23,34 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     console.log('exception:', exception)
     
+    // Handle HTTP exceptions first (including UnauthorizedException)
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const errorResponse = exception.getResponse();
+      if (typeof errorResponse === 'string') {
+        message = errorResponse;
+      } else if (typeof errorResponse === 'object' && errorResponse) {
+        message = (errorResponse as any).message || exception.message;
+        error = (errorResponse as any).error || exception.constructor.name;
+      }
+    }
     // Check if it's a direct BadRequestException
-    if (exception instanceof BadRequestException) {
+    else if (exception instanceof BadRequestException) {
       status = 400;
       message = exception.message;
       error = 'Bad Request';
+    }
+    // Check if it's an UnauthorizedException
+    else if (exception instanceof UnauthorizedException) {
+      status = 401;
+      message = exception.message;
+      error = 'Unauthorized';
+    }
+    // Check if it's a NotFoundException
+    else if (exception instanceof NotFoundException) {
+      status = 404;
+      message = exception.message;
+      error = 'Not Found';
     } 
     // Check if it's an RpcException containing a BadRequestException
     else if (exception instanceof RpcException) {

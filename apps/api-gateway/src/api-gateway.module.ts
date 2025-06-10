@@ -6,6 +6,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TiktokModule } from './tiktok/tiktok.module';
 import { ConfigModule } from '@nestjs/config';
 import { HealthService } from '@app/health';
+import { AuthModule } from '@app/auth';
 @Module({
     imports: [
         ConfigModule.forRoot({
@@ -13,6 +14,7 @@ import { HealthService } from '@app/health';
             isGlobal: true,
         }),
         LoggingModule,
+        AuthModule,
         ClientsModule.register([
             {
                 name: 'TIKTOK_FETCHER_SERVICE',
