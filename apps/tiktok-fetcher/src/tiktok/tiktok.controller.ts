@@ -197,4 +197,67 @@ export class TiktokController {
             throw new BadRequestException('Failed to reset deduplication metrics');
         }
     }
+
+    @MessagePattern(TIKTOK_FETCHER_PATTERNS.UPDATE_UNMASKED_DETAILS)
+    async updateUnmaskedDetails(params: {
+        shop_id: string;
+        order_id: string;
+        name_unmasked?: string;
+        address_detail_unmasked?: string;
+        tin?: string;
+    }) {
+        try {
+            // Update the order in the database with unmasked details
+            const updatedOrder = await this.tiktokOrderService.updateUnmaskedDetails({
+                shopId: params.shop_id,
+                orderId: params.order_id,
+                nameUnmasked: params.name_unmasked,
+                addressDetailUnmasked: params.address_detail_unmasked,
+                tin: params.tin
+            });
+
+            return {
+                success: true,
+                shop_id: params.shop_id,
+                order_id: params.order_id,
+                name_unmasked: params.name_unmasked,
+                address_detail_unmasked: params.address_detail_unmasked,
+                tin: params.tin,
+                updated_at: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('Error updating unmasked details:', error);
+            throw new RpcException(new InternalServerErrorException('Failed to update unmasked details'));
+        }
+    }
+
+    @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_UNMASKED_DETAILS)
+    async getUnmaskedDetails(params: { shop_id: string; order_id: string }) {
+        try {
+            // Fetch order with unmasked details from database
+            const order = await this.tiktokOrderService.findOrderWithUnmaskedDetails({
+                shopId: params.shop_id,
+                orderId: params.order_id
+            });
+
+            if (!order) {
+                throw new RpcException(new NotFoundException(`Order not found for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
+            }
+
+            return {
+                shop_id: params.shop_id,
+                order_id: params.order_id,
+                name_unmasked: order.name_unmasked,
+                address_detail_unmasked: order.addressDetailUnmasked,
+                tin: order.tin,
+                updated_at: order.updatedAt
+            };
+        } catch (error) {
+            if (error instanceof RpcException) {
+                throw error;
+            }
+            console.error('Error getting unmasked details:', error);
+            throw new RpcException(new InternalServerErrorException('Failed to retrieve unmasked details'));
+        }
+    }
 }

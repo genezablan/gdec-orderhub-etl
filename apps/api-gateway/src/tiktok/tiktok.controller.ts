@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException, Res, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Query, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException, Res, StreamableFile } from '@nestjs/common';
 import { Response } from 'express';
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
@@ -11,6 +11,28 @@ import {
 } from '@app/contracts/tiktok-fetcher/dto/';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
+import { IsString, IsOptional } from 'class-validator';
+
+// DTO for updating unmasked details
+export class UpdateUnmaskedDetailsDto {
+    @IsString()
+    shop_id: string;
+
+    @IsString()
+    order_id: string;
+
+    @IsOptional()
+    @IsString()
+    name_unmasked?: string;
+
+    @IsOptional()
+    @IsString()
+    address_detail_unmasked?: string;
+
+    @IsOptional()
+    @IsString()
+    tin?: string;
+}
 @Controller('tiktok')
 export class TiktokController {
     private s3Client: S3Client;
@@ -158,5 +180,61 @@ export class TiktokController {
     @Get('shops')
     getShops() {
         return this.tiktokService.getShops();
+    }
+
+    @Put('orders/unmasked-details')
+    async updateUnmaskedDetails(@Body() updateDto: UpdateUnmaskedDetailsDto) {
+        try {
+            if (!updateDto.shop_id || !updateDto.order_id) {
+                throw new BadRequestException('shop_id and order_id are required');
+            }
+
+            // Validate that at least one field is provided to update
+            if (!updateDto.name_unmasked && !updateDto.address_detail_unmasked && !updateDto.tin) {
+                throw new BadRequestException('At least one field (name_unmasked, address_detail_unmasked, or tin) must be provided');
+            }
+
+            const result = await this.tiktokService.updateUnmaskedDetails({
+                shop_id: updateDto.shop_id,
+                order_id: updateDto.order_id,
+                name_unmasked: updateDto.name_unmasked,
+                address_detail_unmasked: updateDto.address_detail_unmasked,
+                tin: updateDto.tin
+            });
+
+            return {
+                success: true,
+                message: 'Unmasked details updated successfully',
+                data: result
+            };
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            console.error('Update unmasked details error:', error);
+            throw new InternalServerErrorException('Failed to update unmasked details');
+        }
+    }
+
+    @Get('orders/unmasked-details')
+    async getUnmaskedDetails(@Query() query: { shop_id: string; order_id: string }) {
+        try {
+            if (!query.shop_id || !query.order_id) {
+                throw new BadRequestException('shop_id and order_id are required');
+            }
+
+            const result = await this.tiktokService.getUnmaskedDetails({
+                shop_id: query.shop_id,
+                order_id: query.order_id
+            });
+
+            return result;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            console.error('Get unmasked details error:', error);
+            throw new InternalServerErrorException('Failed to retrieve unmasked details');
+        }
     }
 }

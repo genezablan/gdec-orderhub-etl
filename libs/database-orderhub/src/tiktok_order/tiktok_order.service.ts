@@ -84,4 +84,79 @@ export class TiktokOrderService {
             relations: ['items'],
         });
     }
+
+    async updateUnmaskedDetails(params: {
+        shopId: string;
+        orderId: string;
+        nameUnmasked?: string;
+        addressDetailUnmasked?: string;
+        tin?: string;
+    }) {
+        this.logger.log(`Updating unmasked details for order: ${params.shopId}_${params.orderId}`);
+        
+        try {
+            const updateData: any = {};            if (params.nameUnmasked !== undefined) {
+                updateData.name_unmasked = params.nameUnmasked;
+            }
+            if (params.addressDetailUnmasked !== undefined) {
+                updateData.addressDetailUnmasked = params.addressDetailUnmasked;
+            }
+            if (params.tin !== undefined) {
+                updateData.tin = params.tin;
+            }
+            
+            updateData.updatedAt = new Date();
+
+            const result = await this.repo.update(
+                { 
+                    shopId: params.shopId, 
+                    orderId: params.orderId 
+                },
+                updateData
+            );
+
+            if (result.affected === 0) {
+                throw new Error(`Order not found for shopId: ${params.shopId}, orderId: ${params.orderId}`);
+            }
+
+            return await this.repo.findOne({
+                where: { 
+                    shopId: params.shopId, 
+                    orderId: params.orderId 
+                }
+            });
+        } catch (error) {
+            this.logger.error(
+                `Error updating unmasked details: ${JSON.stringify(params)} | Error: ${error.message}`,
+                error.stack
+            );
+            throw error;
+        }
+    }
+
+    async findOrderWithUnmaskedDetails(where: { shopId: string; orderId: string }) {
+        this.logger.log(`Finding order with unmasked details: ${JSON.stringify(where)}`);
+        
+        try {            return await this.repo.findOne({
+                where: {
+                    shopId: where.shopId,
+                    orderId: where.orderId
+                },                select: [
+                    'id',
+                    'shopId', 
+                    'orderId',
+                    'name_unmasked',
+                    'addressDetailUnmasked', 
+                    'tin',
+                    'updatedAt'
+                ]
+            });
+        } catch (error) {
+            this.logger.error(
+                `Error finding order with unmasked details: ${JSON.stringify(where)} | Error: ${error.message}`,
+                error.stack
+            );
+            throw error;
+        }
+    }
 }

@@ -67,4 +67,32 @@ export class TiktokService {
             {}
         );
     }
+
+    async updateUnmaskedDetails(params: {
+        shop_id: string;
+        order_id: string;
+        name_unmasked?: string;
+        address_detail_unmasked?: string;
+        tin?: string;
+    }) {
+        return await firstValueFrom(
+            this.tiktokFetchServiceClient.send(
+                TIKTOK_FETCHER_PATTERNS.UPDATE_UNMASKED_DETAILS,
+                params
+            ).pipe(
+                timeout(10000) // 10 second timeout
+            )
+        );
+    }
+
+    async getUnmaskedDetails(params: { shop_id: string; order_id: string }) {
+        return await firstValueFrom(
+            this.tiktokFetchServiceClient.send(
+                TIKTOK_FETCHER_PATTERNS.GET_UNMASKED_DETAILS,
+                params
+            ).pipe(
+                timeout(10000) // 10 second timeout
+            )
+        );
+    }
 }

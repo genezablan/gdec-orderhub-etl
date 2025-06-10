@@ -4,5 +4,7 @@ export const TIKTOK_FETCHER_PATTERNS = {
     GET_SUPPORT_ORDER_DETAILS: 'tiktok.getSupportOrderDetails',
     GET_SHOPS: 'tiktok.getShops',
     GENERATE_RECEIPT: 'tiktok.generateReceipt',
-    GET_SALES_INVOICES: 'tiktok.getSalesInvoices'
+    GET_SALES_INVOICES: 'tiktok.getSalesInvoices',
+    UPDATE_UNMASKED_DETAILS: 'tiktok.updateUnmaskedDetails',
+    GET_UNMASKED_DETAILS: 'tiktok.getUnmaskedDetails'
 };
