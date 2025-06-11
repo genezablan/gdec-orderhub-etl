@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Inject } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { TiktokOrderService } from '@app/database-orderhub';
 import { SalesInvoiceService } from '@app/database-orderhub';
@@ -11,10 +11,13 @@ import * as path from 'path';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { HealthService } from '@app/health';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Controller()
 export class TiktokReceiptController {
     private s3Client: S3Client;
+    private readonly DEDUPLICATION_TTL_SECONDS = 300; // 5 minutes
 
     constructor(
         private readonly tiktokOrderService: TiktokOrderService,
@@ -22,7 +25,8 @@ export class TiktokReceiptController {
         private readonly counterService: CountersService,
         private readonly salesInvoiceService: SalesInvoiceService,
         private readonly configService: ConfigService,
-        private readonly healthService: HealthService
+        private readonly healthService: HealthService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) {
         // Get AWS configuration from config service
         const awsRegion = this.configService.get<string>('aws.region') || process.env.AWS_REGION || 'ap-southeast-1';
@@ -58,20 +62,44 @@ export class TiktokReceiptController {
     @MessagePattern('tiktok.order_loaded')
     async handleOrderLoaded(payload: any) {
         console.log('Received tiktok.order_loaded:', payload);
-        const orderWithItems = await this.fetchOrderWithItems(payload);
         
-        if (orderWithItems && orderWithItems.items) {
-            const aggregatedItems = this.aggregateItems(orderWithItems.items);
-            
-            // Create order with aggregated items
-            const orderWithAggregatedItems = {
-                ...orderWithItems,
-                items: aggregatedItems
-            };
-            const itemsByPackage = this.groupItemsByPackage(orderWithAggregatedItems);
-            await this.generateInvoicesForPackages(itemsByPackage, orderWithItems, payload.orderId);
-            console.log(`Invoices generated for order ${payload.orderId} with ${Object.keys(itemsByPackage).length} packages.`);
+        // Create a unique key for deduplication
+        const deduplicationKey = `tiktok_order_processing:${payload.shopId}:${payload.orderId}`;
+        
+        // Check if this order is already being processed
+        const isProcessing = await this.cacheManager.get(deduplicationKey);
+        
+        if (isProcessing) {
+            console.log(`Order ${payload.orderId} for shop ${payload.shopId} is already being processed. Skipping duplicate request.`);
+            return;
         }
+        
+        // Set the processing flag with TTL
+        await this.cacheManager.set(deduplicationKey, true, this.DEDUPLICATION_TTL_SECONDS * 1000);
+        
+        try {
+            const orderWithItems = await this.fetchOrderWithItems(payload);
+            
+            if (orderWithItems && orderWithItems.items) {
+                const aggregatedItems = this.aggregateItems(orderWithItems.items);
+                
+                // Create order with aggregated items
+                const orderWithAggregatedItems = {
+                    ...orderWithItems,
+                    items: aggregatedItems
+                };
+                const itemsByPackage = this.groupItemsByPackage(orderWithAggregatedItems);
+                await this.generateInvoicesForPackages(itemsByPackage, orderWithItems, payload.orderId);
+                console.log(`Invoices generated for order ${payload.orderId} with ${Object.keys(itemsByPackage).length} packages.`);
+            }
+        } catch (error) {
+            console.error(`Error processing order ${payload.orderId}:`, error);
+            // Remove the processing flag on error so it can be retried
+            await this.cacheManager.del(deduplicationKey);
+            throw error;
+        }
+        
+        console.log(`Order ${payload.orderId} processing completed successfully.`);
     }
 
     private async fetchOrderWithItems(payload: any): Promise<TiktokOrderDto | null> {
@@ -243,24 +271,68 @@ export class TiktokReceiptController {
             throw new Error(`Unable to store invoice: ${s3Error.message}`);
         }
         
-        // Save sales invoice details to database
+        // Save sales invoice details to database with comprehensive data
         try {
             const packageData = receiptDto.packages[0]; // Get the first (and likely only) package
-            await this.salesInvoiceService.create({
+            
+            // Extract comprehensive invoice data
+            const invoiceData = {
+                // Basic required fields
                 sequenceNumber: sequenceNumber.toString(),
                 orderId: orderWithItems.orderId,
                 shopId: orderWithItems.shopId,
                 packageId: packageId,
-                filePath: finalFilePath, // Use S3 URL or local path
+                filePath: finalFilePath,
+                
+                // Financial details
                 amountDue: packageData.amount_due.toString(),
                 vatableSales: packageData.vatable_sales.toString(),
                 vatAmount: packageData.vat_amount.toString(),
                 subtotalNet: packageData.subtotal_net.toString(),
                 totalDiscount: packageData.total_discount.toString(),
+                vatExemptSales: packageData.vat_exempt_sales?.toString() || '0',
+                vatZeroRatedSales: packageData.vat_zero_rated_sales?.toString() || '0',
+                totalNetAmount: packageData.subtotal_net.toString(),
+                grossAmount: packageData.amount_due.toString(),
+                
+                // Document details
                 pageNumber: packageData.page_number,
                 totalPages: packageData.total_pages,
-                generatedAt: new Date()
-            });
+                generatedAt: new Date(),
+                invoiceDate: new Date(),
+                invoicePrintedDate: new Date(),
+                
+                // Order and customer information from package data
+                orderNumber: packageData.order_number,
+                customerName: packageData.billing_address?.full_name || packageData.shipping_address?.full_name,
+                customerTin: packageData.billing_address?.tax_identification_number || packageData.account_tax_identification_number,
+                customerAddress: packageData.billing_address?.full_address || packageData.shipping_address?.full_address,
+                paymentMethod: packageData.payment_method,
+                currency: 'PHP', // Default currency
+                invoiceStatus: 'generated',
+                
+                // JSONB data for comprehensive storage
+                invoiceContent: receiptDto, // Complete receipt data
+                billingAddress: packageData.billing_address,
+                shippingAddress: packageData.shipping_address,
+                lineItems: packageData.items || [],
+                accountDetails: {
+                    name: packageData.account_name,
+                    fullAddress: packageData.account_full_address,
+                    taxIdentificationNumber: packageData.account_tax_identification_number
+                },
+                taxDetails: {
+                    vatAmount: packageData.vat_amount,
+                    vatableSales: packageData.vatable_sales,
+                    vatExemptSales: packageData.vat_exempt_sales || 0,
+                    vatZeroRatedSales: packageData.vat_zero_rated_sales || 0,
+                    taxRate: '12%', // Standard Philippine VAT
+                    totalBeforeTax: packageData.subtotal_net,
+                    totalAfterTax: packageData.amount_due
+                }
+            };
+            
+            await this.salesInvoiceService.create(invoiceData);
             
             console.log(`Saved sales invoice record for package ${packageId} with sequence number ${sequenceNumber}`);
         } catch (error) {
@@ -339,5 +411,22 @@ export class TiktokReceiptController {
                 timestamp: new Date().toISOString()
             };
         }
+    }
+
+    @Get('debug/deduplication/:shopId/:orderId')
+    async checkDeduplicationStatus(
+        @Param('shopId') shopId: string,
+        @Param('orderId') orderId: string
+    ) {
+        const deduplicationKey = `tiktok_order_processing:${shopId}:${orderId}`;
+        const isProcessing = await this.cacheManager.get(deduplicationKey);
+        const ttl = await this.cacheManager.ttl?.(deduplicationKey) || 'N/A';
+        
+        return {
+            key: deduplicationKey,
+            isProcessing: !!isProcessing,
+            ttl: ttl,
+            timestamp: new Date().toISOString()
+        };
     }
 }

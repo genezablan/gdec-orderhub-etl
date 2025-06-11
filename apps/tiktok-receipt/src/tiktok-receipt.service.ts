@@ -62,7 +62,10 @@ export class TiktokReceiptService {
     }
 
     async generatePdfBuffer(data: ReceiptDto): Promise<Buffer> {
-        const html = this.renderReceiptHtml(data);
+        // Create a deep copy to prevent mutation of the original data object
+        const dataCopy = JSON.parse(JSON.stringify(data));
+        const html = this.renderReceiptHtml(dataCopy);
+        
         const browser = await puppeteer.launch({
             args: [
                 '--no-sandbox',
@@ -136,7 +139,7 @@ export class TiktokReceiptService {
         const subtotal_net = vatable_sales;
         const vat_amount = Math.round(vatable_sales * 0.12 * 100) / 100;
 
-        return {
+        const receiptDto = {
             packages: [
                 {
                     sequence_number: sequenceNumber,
@@ -188,5 +191,7 @@ export class TiktokReceiptService {
                 },
             ],
         };
+        
+        return receiptDto;
     }
 }

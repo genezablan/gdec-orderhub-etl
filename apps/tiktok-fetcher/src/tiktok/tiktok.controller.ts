@@ -40,67 +40,43 @@ export class TiktokController {
 
     @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_ORDER_DETAILS)
     async getOrderDetails(params: { shop_id: string; order_id: string, name?: string, full_address?: string, tin?: string }) {
-        const deduplicationKey = `order_details_${params.shop_id}_${params.order_id}`;
-        
-        const { result, fromCache, wasDuplicate } = await this.deduplicationService.processOnce(
-            deduplicationKey,
-            async () => {
-                const shop = await this.shopsService.findByTiktokShopCode(params.shop_id);
+        const shop = await this.shopsService.findByTiktokShopCode(params.shop_id);
 
-                if (!shop) {
-                    throw new RpcException(new NotFoundException(`Shop not found for shop_id: ${params.shop_id}`));
-                }
-
-                const { access_token, tiktok_shop_cipher, tiktok_shop_code } = shop;
-
-                const getOrderDetailsParams = {
-                    ids: [params.order_id],
-                    accessToken: access_token,
-                    shopCipher: tiktok_shop_cipher,
-                    tiktokShopCode: tiktok_shop_code,
-                };
-
-                const apiResult = await this.tiktokService.getOrderDetails(getOrderDetailsParams);
-
-                // Validate API result structure
-                if (!apiResult || !apiResult.data) {
-                    throw new RpcException(new NotFoundException(`Invalid API response for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
-                }
-
-                if (!apiResult.data.orders || apiResult.data.orders.length === 0) {
-                    throw new RpcException(new NotFoundException(`Order not found in tiktok for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
-                }
-                
-                return { apiResult, shop };
-            },
-            300 // Cache for 5 minutes
-        );
-
-        if (wasDuplicate) {
-            return { message: 'Request already processed or in progress' };
+        if (!shop) {
+            throw new RpcException(new NotFoundException(`Shop not found for shop_id: ${params.shop_id}`));
         }
 
-        if (!result) {
-            throw new RpcException(new InternalServerErrorException('Failed to process request'));
+        const { access_token, tiktok_shop_cipher, tiktok_shop_code } = shop;
+
+        const getOrderDetailsParams = {
+            ids: [params.order_id],
+            accessToken: access_token,
+            shopCipher: tiktok_shop_cipher,
+            tiktokShopCode: tiktok_shop_code,
+        };
+
+        const apiResult = await this.tiktokService.getOrderDetails(getOrderDetailsParams);
+
+        // Validate API result structure
+        if (!apiResult || !apiResult.data) {
+            throw new RpcException(new NotFoundException(`Invalid API response for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
         }
 
-        // Only emit the event if this is fresh data (not from cache)
-        if (!fromCache && result && result.apiResult && result.apiResult.data && result.apiResult.data.orders && result.apiResult.data.orders.length > 0) {
-            console.log(`🔥 EMITTING tiktok.raw_order_details for fresh data: ${params.shop_id}_${params.order_id}`);
-            this.tiktokTransformerClient.emit('tiktok.raw_order_details', {
-                orders: result.apiResult.data.orders,
-                shop: result.shop,
-                customer_info: {
-                    name: params.name,
-                    full_address: params.full_address,
-                    tin: params.tin
-                }
-            });
-        } else if (fromCache) {
-            console.log(`📦 CACHED RESULT - NOT EMITTING for: ${params.shop_id}_${params.order_id}`);
+        if (!apiResult.data.orders || apiResult.data.orders.length === 0) {
+            throw new RpcException(new NotFoundException(`Order not found in tiktok for shop_id: ${params.shop_id}, order_id: ${params.order_id}`));
         }
-
-        return result.apiResult;
+        console.log(`🔥 EMITTING tiktok.raw_order_details for fresh data: ${params.shop_id}_${params.order_id}`);
+        this.tiktokTransformerClient.emit('tiktok.raw_order_details', {
+            orders: apiResult.data.orders,
+            shop: shop,
+            customer_info: {
+                name: params.name,
+                full_address: params.full_address,
+                tin: params.tin
+            }
+        });
+    
+        return apiResult;
     }
 
     @MessagePattern(TIKTOK_FETCHER_PATTERNS.GET_SUPPORT_ORDER_DETAILS)

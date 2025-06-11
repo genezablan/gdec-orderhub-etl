@@ -3,9 +3,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 // Load .env file from root directory (centralized configuration)
-const dotenvPath = path.resolve(__dirname, '../.env');
+const dotenvPath = path.resolve(__dirname, '../../.env');
 if (fs.existsSync(dotenvPath)) {
     require('dotenv').config({ path: dotenvPath });
+} else {
+    console.log('No .env file found, using environment variables');
 }
 
 // Clean up single quotes if present
