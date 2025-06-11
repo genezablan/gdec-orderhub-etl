@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, Query, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException, Res, StreamableFile } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Patch, Query, Param, HttpException, HttpStatus, BadRequestException, NotFoundException, InternalServerErrorException, Res, StreamableFile } from '@nestjs/common';
 import { Response } from 'express';
 import { createReadStream, existsSync } from 'fs';
 import { join } from 'path';
@@ -11,7 +11,8 @@ import {
 } from '@app/contracts/tiktok-fetcher/dto/';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 // DTO for updating unmasked details
 export class UpdateUnmaskedDetailsDto {
@@ -32,6 +33,25 @@ export class UpdateUnmaskedDetailsDto {
     @IsOptional()
     @IsString()
     tin?: string;
+}
+
+// DTO for billing address
+export class BillingAddressDto {
+    @IsString()
+    fullName: string;
+
+    @IsString()
+    fullAddress: string;
+
+    @IsString()
+    taxIdentificationNumber: string;
+}
+
+// DTO for updating sales invoice
+export class UpdateSalesInvoiceDto {
+    @ValidateNested()
+    @Type(() => BillingAddressDto)
+    billingAddress: BillingAddressDto;
 }
 @Controller('tiktok')
 export class TiktokController {
@@ -235,6 +255,26 @@ export class TiktokController {
             }
             console.error('Get unmasked details error:', error);
             throw new InternalServerErrorException('Failed to retrieve unmasked details');
+        }
+    }
+
+    @Patch('sales-invoices/:id')
+    async updateSalesInvoice(
+        @Param('id') id: string,
+        @Body() updateData: UpdateSalesInvoiceDto
+    ) {
+        try {
+            console.log(`Updating sales invoice ${id} with data:`, updateData);
+
+            const result = await this.tiktokService.updateSalesInvoice(id, updateData);
+
+            return result;
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            console.error(`Failed to update sales invoice ${id}:`, error);
+            throw new InternalServerErrorException('Failed to update sales invoice');
         }
     }
 }

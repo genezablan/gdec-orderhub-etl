@@ -6,5 +6,6 @@ export const TIKTOK_FETCHER_PATTERNS = {
     GENERATE_RECEIPT: 'tiktok.generateReceipt',
     GET_SALES_INVOICES: 'tiktok.getSalesInvoices',
     UPDATE_UNMASKED_DETAILS: 'tiktok.updateUnmaskedDetails',
-    GET_UNMASKED_DETAILS: 'tiktok.getUnmaskedDetails'
+    GET_UNMASKED_DETAILS: 'tiktok.getUnmaskedDetails',
+    UPDATE_SALES_INVOICE: 'tiktok.updateSalesInvoice'
 };

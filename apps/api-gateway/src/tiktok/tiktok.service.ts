@@ -8,7 +8,9 @@ import { firstValueFrom, timeout, catchError, throwError } from 'rxjs';
 export class TiktokService {
     constructor(
         @Inject('TIKTOK_FETCHER_SERVICE')
-        private tiktokFetchServiceClient: ClientProxy
+        private tiktokFetchServiceClient: ClientProxy,
+        @Inject('TIKTOK_RECEIPT_SERVICE')
+        private tiktokReceiptServiceClient: ClientProxy
     ) {}
 
     getOrders(params: GetOrdersQueryDto) {
@@ -90,6 +92,20 @@ export class TiktokService {
             this.tiktokFetchServiceClient.send(
                 TIKTOK_FETCHER_PATTERNS.GET_UNMASKED_DETAILS,
                 params
+            ).pipe(
+                timeout(10000) // 10 second timeout
+            )
+        );
+    }
+
+    async updateSalesInvoice(id: string, updateData: any) {
+        return await firstValueFrom(
+            this.tiktokReceiptServiceClient.send(
+                TIKTOK_FETCHER_PATTERNS.UPDATE_SALES_INVOICE,
+                {
+                    id,
+                    updateData
+                }
             ).pipe(
                 timeout(10000) // 10 second timeout
             )

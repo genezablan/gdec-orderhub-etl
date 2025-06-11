@@ -14,6 +14,13 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
                     port: 3001,
                 },
             },
+            {
+                name: 'TIKTOK_RECEIPT_SERVICE',
+                transport: Transport.TCP,
+                options: {
+                    port: 3004,
+                },
+            },
         ]),
     ],
     controllers: [TiktokController],

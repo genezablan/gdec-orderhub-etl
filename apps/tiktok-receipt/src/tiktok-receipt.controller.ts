@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Inject } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { Controller, Get, Param, Inject, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { MessagePattern, RpcException } from '@nestjs/microservices';
 import { TiktokOrderService } from '@app/database-orderhub';
 import { SalesInvoiceService } from '@app/database-orderhub';
 import { TiktokOrderDto } from '@app/contracts/database-orderhub/tiktok_order.dto';
@@ -7,6 +7,7 @@ import { TiktokOrderItemDto } from '@app/contracts/database-orderhub/tiktok_orde
 import { TiktokReceiptService } from './tiktok-receipt.service';
 import { CountersService } from '@app/database-scrooge/counters/counters.service';
 import { ItemsByPackageDto, PackageOrderDto } from './dto';
+import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
 import * as path from 'path';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
@@ -428,5 +429,35 @@ export class TiktokReceiptController {
             ttl: ttl,
             timestamp: new Date().toISOString()
         };
+    }
+
+    @MessagePattern(TIKTOK_FETCHER_PATTERNS.UPDATE_SALES_INVOICE)
+    async updateSalesInvoice(params: { id: string; updateData: any }) {
+        console.log('🔥 UPDATE_SALES_INVOICE handler called with params:', params);
+        try {
+            console.log(`Updating sales invoice ${params.id} with data:`, params.updateData);
+
+            // Update the sales invoice in the database
+            const updatedInvoice = await this.salesInvoiceService.updateSalesInvoice(
+                params.id,
+                params.updateData
+            );
+
+            if (!updatedInvoice) {
+                throw new RpcException(new NotFoundException(`Sales invoice not found with id: ${params.id}`));
+            }
+
+            return {
+                success: true,
+                message: 'Sales invoice updated successfully',
+                data: updatedInvoice
+            };
+        } catch (error) {
+            if (error instanceof RpcException) {
+                throw error;
+            }
+            console.error('Error updating sales invoice:', error);
+            throw new RpcException(new InternalServerErrorException('Failed to update sales invoice'));
+        }
     }
 }
