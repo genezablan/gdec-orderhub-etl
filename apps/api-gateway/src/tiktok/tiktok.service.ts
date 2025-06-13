@@ -111,4 +111,15 @@ export class TiktokService {
             )
         );
     }
+
+    async reprintInvoice(salesInvoiceId: string) {
+        return await firstValueFrom(
+            this.tiktokReceiptServiceClient.send(
+                'tiktok.reprint_invoice',
+                { salesInvoiceId }
+            ).pipe(
+                timeout(30000) // 30 second timeout for PDF generation
+            )
+        );
+    }
 }

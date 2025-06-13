@@ -123,6 +123,36 @@ export class SalesInvoiceService {
                 existingInvoice.billingAddress = updatedBillingAddress;
             }
 
+            // Update shipping address fields if provided
+            if (updateData.shippingAddress) {
+                // Clone the existing shippingAddress to ensure TypeORM detects changes
+                const updatedShippingAddress = existingInvoice.shippingAddress ? { ...existingInvoice.shippingAddress } : {};
+
+                // Update individual fields in the JSONB shippingAddress object using snake_case
+                if (updateData.shippingAddress.fullName !== undefined) {
+                    updatedShippingAddress.full_name = updateData.shippingAddress.fullName;
+                }
+                if (updateData.shippingAddress.fullAddress !== undefined) {
+                    updatedShippingAddress.full_address = updateData.shippingAddress.fullAddress;
+                }
+
+                // Assign the new object to trigger TypeORM change detection
+                existingInvoice.shippingAddress = updatedShippingAddress;
+            }
+
+            // Update other fields if provided
+            if (updateData.filePath !== undefined) {
+                existingInvoice.filePath = updateData.filePath;
+            }
+            
+            if (updateData.generatedAt !== undefined) {
+                existingInvoice.generatedAt = updateData.generatedAt;
+            }
+            
+            if (updateData.invoiceContent !== undefined) {
+                existingInvoice.invoiceContent = updateData.invoiceContent;
+            }
+
             // Update the updated timestamp
             existingInvoice.updatedAt = new Date();
 

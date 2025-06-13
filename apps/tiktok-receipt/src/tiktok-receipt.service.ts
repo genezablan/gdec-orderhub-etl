@@ -1,503 +1,539 @@
 import { Injectable } from '@nestjs/common';
-import * as puppeteer from 'puppeteer';
-import * as pug from 'pug';
-import * as path from 'path';
-import * as fs from 'fs';
-import { ReceiptDto } from '@app/contracts/tiktok-transformer/dto/';
 import { TiktokOrderDto } from '@app/contracts/database-orderhub/tiktok_order.dto';
 import { TiktokOrderItemDto } from '@app/contracts/database-orderhub/tiktok_order_item.dto';
 import { SalesInvoiceDto } from '@app/contracts/database-orderhub/sales_invoice.dto';
 import { TiktokOrderService, SalesInvoiceService } from '@app/database-orderhub';
 import { CountersService } from '@app/database-scrooge/counters/counters.service';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { ConfigService } from '@nestjs/config';
-import { PackageDto } from '@app/contracts/tiktok-receipt';
+import { LoggingService } from '@app/logging';
+import { 
+    PdfGeneratorService, 
+    S3UploadService, 
+    InvoiceTransformerService, 
+    TiktokReceiptConfigService,
+    ValidationService,
+    PackageDto 
+} from './services';
 
 @Injectable()
 export class TiktokReceiptService {
-    private s3Client: S3Client;
-
     constructor(
         private readonly tiktokOrderService: TiktokOrderService,
         private readonly salesInvoiceService: SalesInvoiceService,
         private readonly counterService: CountersService,
-        private readonly configService: ConfigService
-    ) {
-        // Initialize S3 client
-        const awsRegion = this.configService.get<string>('aws.region') || process.env.AWS_REGION || 'ap-southeast-1';
-        const awsAccessKeyId = this.configService.get<string>('aws.accessKeyId') || process.env.AWS_ACCESS_KEY_ID;
-        const awsSecretAccessKey = this.configService.get<string>('aws.secretAccessKey') || process.env.AWS_SECRET_ACCESS_KEY;
+        private readonly logger: LoggingService,
+        private readonly pdfGenerator: PdfGeneratorService,
+        private readonly s3Upload: S3UploadService,
+        private readonly invoiceTransformer: InvoiceTransformerService,
+        private readonly config: TiktokReceiptConfigService,
+        private readonly validation: ValidationService
+    ) {}
 
-        this.s3Client = new S3Client({
-            region: awsRegion,
-            credentials: {
-                accessKeyId: awsAccessKeyId || '',
-                secretAccessKey: awsSecretAccessKey || ''
-            },
-            forcePathStyle: true,
-            maxAttempts: 3,
-            endpoint: `https://s3.${awsRegion}.amazonaws.com`,
-            requestHandler: {
-                requestTimeout: 30000,
-                connectionTimeout: 10000
-            }
-        });
-    }
     getHello(): string {
         return 'Hello World!';
     }
-    
+
     /**
-     * Rounds a number up to two decimal places.
-     * @param value The number to round up.
-     * @returns The rounded number.
+     * Main entry point for processing TikTok orders into invoice packages
      */
-    roundUpToTwoDecimals(value: number): number {
-        return Math.ceil(value * 100) / 100;
-    }
+    async processOrder(orderId: string, shopId: string): Promise<void> {
+        try {
+            this.validation.validateOrderInput({ orderId, shopId });
+            this.logger.log(`Processing order ${orderId} for shop ${shopId}`, 'TiktokReceiptService');
 
-    renderReceiptHtml(data: pug.Options & pug.LocalsObject): string {
-        console.log('__dirname:', __dirname);
-        const templatePath = path.join(
-            __dirname,
-            'templates',
-            '/b2c-sales-invoice/receipt.pug'
-        );
-        return pug.renderFile(templatePath, data);
-    }
-
-    async generatePdf(data: ReceiptDto, outputPath: string): Promise<void> {
-        // Ensure output directory exists
-        const dir = path.dirname(outputPath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        const html = this.renderReceiptHtml(data);
-        const browser = await puppeteer.launch({
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-web-security',
-                '--disable-extensions',
-                '--no-first-run',
-                '--disable-default-apps',
-                '--hide-scrollbars',
-                '--mute-audio'
-            ],
-            headless: true
-        });
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-        await page.pdf({ path: outputPath, format: 'A4' });
-        await browser.close();
-    }
-
-    async generatePdfBuffer(data: ReceiptDto): Promise<Buffer> {
-        // Create a deep copy to prevent mutation of the original data object
-        const dataCopy = JSON.parse(JSON.stringify(data));
-        const html = this.renderReceiptHtml(dataCopy);
-        
-        const browser = await puppeteer.launch({
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-web-security',
-                '--disable-extensions',
-                '--no-first-run',
-                '--disable-default-apps',
-                '--hide-scrollbars',
-                '--mute-audio'
-            ],
-            headless: true
-        });
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-        const pdfData = await page.pdf({ format: 'A4' });
-        await browser.close();
-        return Buffer.from(pdfData);
-    }
-
-    mapOrderWithItemsToReceiptDto(orderWithItems: TiktokOrderDto , sequenceNumber: string): ReceiptDto {
-        const items = Array.isArray(orderWithItems.items)
-            ? orderWithItems.items.map((item: TiktokOrderItemDto) => ({
-                  shop_sku: item.sellerSku ?? '',
-                  variation_sku: item.skuId ?? '',
-                  item_name: item.productName ?? '',
-                  quantity:
-                      typeof item.quantity === 'number' ? item.quantity : 1,
-                  item_price: item.originalPrice
-                      ? Number(item.originalPrice)
-                      : 0,
-                  store_discount:
-                      (item.sellerDiscount ? Number(item.sellerDiscount) : 0) +
-                      (item.platformDiscount
-                          ? Number(item.platformDiscount)
-                          : 0),
-                  total_actual_price:
-                        this.roundUpToTwoDecimals(
-                            (Number(item.originalPrice ?? 0) - (Number(item.sellerDiscount ?? 0) + Number(item.platformDiscount ?? 0)))
-                            * (typeof item.quantity === 'number' ? item.quantity : 1)
-                        )
-              }))
-            : [];
-        // const amount_due =
-        //     (orderWithItems.originalShippingFee
-        //         ? Number(orderWithItems.originalShippingFee)
-        //         : 0) +
-        //     (orderWithItems.originalTotalProductPrice
-        //         ? Number(orderWithItems.originalTotalProductPrice)
-        //         : 0) -
-        //     (orderWithItems.platformDiscount
-        //         ? Number(orderWithItems.platformDiscount)
-        //         : 0) -
-        //     (orderWithItems.sellerDiscount
-        //         ? Number(orderWithItems.sellerDiscount)
-        //         : 0) -
-        //     (orderWithItems.shippingFeeCofundedDiscount
-        //         ? Number(orderWithItems.shippingFeeCofundedDiscount)
-        //         : 0) -
-        //     (orderWithItems.shippingFeePlatformDiscount
-        //         ? Number(orderWithItems.shippingFeePlatformDiscount)
-        //         : 0) -
-        //     (orderWithItems.shippingFeeSellerDiscount
-        //         ? Number(orderWithItems.shippingFeeSellerDiscount)
-        //         : 0);
-        const amount_due = orderWithItems.subTotal ? Number(orderWithItems.subTotal) : 0;
-        const vatable_sales = Math.round((amount_due / 1.12) * 100) / 100;
-        const total_discount = 0;
-        const subtotal_net = vatable_sales;
-        const vat_amount = Math.round(vatable_sales * 0.12 * 100) / 100;
-
-        const receiptDto = {
-            packages: [
-                {
-                    sequence_number: sequenceNumber,
-                    page_number: 1,
-                    total_pages: 1,
-                    billing_address: {
-                        full_name: orderWithItems.name ?? '',
-                        address_line1: orderWithItems.addressDetail ?? '',
-                        address_line2: '',
-                        city: orderWithItems.municipality ?? '',
-                        state: orderWithItems.region ?? '',
-                        postal_code: orderWithItems.postalCode ?? '',
-                        country: orderWithItems.country ?? '',
-                        full_address: orderWithItems.fullAddress ?? '',
-                        tax_identification_number: orderWithItems?.tin ?? ''
-                    },
-                    shipping_address: {
-                        full_name: orderWithItems.name ?? '',
-                        address_line1: orderWithItems.addressDetail ?? '',
-                        address_line2: '',
-                        city: orderWithItems.municipality ?? '',
-                        state: orderWithItems.region ?? '',
-                        postal_code: orderWithItems.postalCode ?? '',
-                        country: orderWithItems.country ?? '',
-                        full_address: orderWithItems.fullAddress ?? '',
-                    },
-                    items,
-                    account_name: 'Great Deals E-Commerce Corp',
-                    account_full_address:
-                        '2/F Bookman Building, 373 Quezon Avenue, Barangay Lourdes Quezon City National Capital Region Philippines 1114',
-                    account_tax_identification_number: '009-717-682-000',
-                    invoice_printed_date: new Date().toLocaleDateString(
-                        'en-US',
-                        {
-                            year: 'numeric',
-                            month: 'long',
-                            day: '2-digit',
-                        }
-                    ),
-                    order_number: orderWithItems.orderId ?? '',
-                    payment_method: orderWithItems.paymentMethodName ?? '',
-                    vatable_sales,
-                    vat_exempt_sales: 0,
-                    vat_zero_rated_sales: 0,
-                    total_discount,
-                    subtotal_net,
-                    vat_amount,
-                    amount_due,
-                },
-            ],
-        };
-        
-        return receiptDto;
-    }
-
-    // Main business logic methods
-
-    // 1. Fetch order data with items and aggregation
-    async fetchOrderData(orderId: string, shopId: string): Promise<(TiktokOrderDto & { items: (TiktokOrderItemDto & { quantity: number })[] }) | null> {
-        const orderWithItems = await this.tiktokOrderService.findOrderWithItems({
-            orderId,
-            shopId
-        });
-
-        if (!orderWithItems || !orderWithItems.items) {
-            return null;
-        }
-
-        // Aggregate items to consolidate duplicate items with quantities
-        const aggregatedItems = Object.values(
-            orderWithItems.items.reduce(
-                (acc, item) => {
-                    const key = `${item.shopId}|${item.orderId}|${item.productId}`;
-                    if (!acc[key]) {
-                        acc[key] = { ...item, quantity: 1 };
-                    } else {
-                        acc[key].quantity += 1;
-                    }
-                    return acc;
-                },
-                {} as Record<string, TiktokOrderItemDto & { quantity: number }>
-            )
-        );
-
-        return {
-            ...orderWithItems,
-            items: aggregatedItems
-        };
-    }
-
-    // 2. Transform order into packages
-    transformToPackages(orderData: TiktokOrderDto & { items: (TiktokOrderItemDto & { quantity: number })[] }): PackageDto[] {
-        const packagesIds = orderData.packagesId ? 
-            orderData.packagesId.split(',').map(id => id.trim()) : 
-            ['default'];
-
-        return packagesIds
-            .map(packageId => {
-                const packageItems = orderData.items.filter(item => 
-                    item.packageId === packageId || 
-                    (packageId === 'default' && !item.packageId)
-                ) as (TiktokOrderItemDto & { quantity: number })[];
-
-                if (packageItems.length > 0) {
-                    const packageDto = new PackageDto();
-                    // Copy all order properties
-                    Object.assign(packageDto, orderData);
-                    // Set package-specific properties
-                    packageDto.packageId = packageId;
-                    packageDto.items = packageItems;
-                    
-                    return packageDto;
-                }
-                return null;
-            })
-            .filter((pkg): pkg is PackageDto => pkg !== null);
-    }
-
-    // 3. Process packages to generate invoices
-    async processPackages(packages: PackageDto[]): Promise<void> {
-        for (const packageData of packages) {
-            // Check if invoice already exists for this package
-            if (await this.invoiceAlreadyExists(packageData)) {
-                console.log(`Invoice already exists for package ${packageData.packageId}. Skipping generation.`);
-                continue;
+            // 1. Fetch and validate order data
+            const orderData = await this.fetchOrderData(orderId, shopId);
+            if (!orderData) {
+                this.logger.warn(`Order not found: ${orderId}`, 'TiktokReceiptService');
+                return;
             }
 
+            // 2. Transform order into packages
+            const packages = this.invoiceTransformer.transformToPackages(orderData);
+            if (packages.length === 0) {
+                this.logger.warn(`No packages found for order: ${orderId}`, 'TiktokReceiptService');
+                return;
+            }
+
+            // 3. Process each package
+            await this.processPackages(packages);
+
+            this.logger.log(
+                `Successfully processed ${packages.length} packages for order ${orderId}`, 
+                'TiktokReceiptService'
+            );
+        } catch (error) {
+            this.logger.error(
+                `Failed to process order ${orderId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch order data with items and perform aggregation
+     */
+    async fetchOrderData(
+        orderId: string, 
+        shopId: string
+    ): Promise<(TiktokOrderDto & { items: (TiktokOrderItemDto & { quantity: number })[] }) | null> {
+        try {
+            const orderWithItems = await this.tiktokOrderService.findOrderWithItems({
+                orderId,
+                shopId
+            });
+
+            if (!orderWithItems || !orderWithItems.items) {
+                return null;
+            }
+
+            // Aggregate items to consolidate duplicate items with quantities
+            const aggregatedItems = this.invoiceTransformer.aggregateOrderItems(orderWithItems.items);
+
+            return {
+                ...orderWithItems,
+                items: aggregatedItems
+            };
+        } catch (error) {
+            this.logger.error(
+                `Failed to fetch order data for ${orderId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Process multiple packages to generate invoices
+     */
+    async processPackages(packages: PackageDto[]): Promise<void> {
+        for (const packageData of packages) {
             try {
+                // Check if invoice already exists for this package
+                if (await this.invoiceAlreadyExists(packageData)) {
+                    this.logger.log(
+                        `Invoice already exists for package ${packageData.packageId}. Skipping generation.`, 
+                        'TiktokReceiptService'
+                    );
+                    continue;
+                }
+
                 await this.processPackageInvoice(packageData);
-                console.log(`Successfully processed invoice for package ${packageData.packageId}`);
+                this.logger.log(
+                    `Successfully processed invoice for package ${packageData.packageId}`, 
+                    'TiktokReceiptService'
+                );
             } catch (error) {
-                console.error(`Failed to process package ${packageData.packageId}:`, error);
+                this.logger.error(
+                    `Failed to process package ${packageData.packageId}`, 
+                    error, 
+                    'TiktokReceiptService'
+                );
                 // Continue with other packages even if one fails
             }
         }
     }
 
-    // Check if invoice already exists for a package
+    /**
+     * Check if invoice already exists for a package
+     */
     async invoiceAlreadyExists(packageData: PackageDto): Promise<boolean> {
-        const existingInvoice = await this.salesInvoiceService.findOne({
-            orderId: packageData.orderId,
-            shopId: packageData.shopId,
-            packageId: packageData.packageId
-        });
-        return !!existingInvoice;
+        try {
+            const existingInvoice = await this.salesInvoiceService.findOne({
+                orderId: packageData.orderId,
+                shopId: packageData.shopId,
+                packageId: packageData.packageId
+            });
+            return !!existingInvoice;
+        } catch (error) {
+            this.logger.error(
+                `Failed to check existing invoice for package ${packageData.packageId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            // Return false to proceed with generation if check fails
+            return false;
+        }
     }
 
-    // Process a single package invoice (main orchestration)
+    /**
+     * Process a single package invoice (main orchestration)
+     */
     async processPackageInvoice(packageData: PackageDto): Promise<void> {
-        const sequenceNumber = await this.generateSequenceNumber();
-        const receiptDto = await this.createReceiptData(packageData, sequenceNumber);
-        const filePath = await this.generateAndUploadPdf(packageData, receiptDto, sequenceNumber);
-        const salesInvoiceDto = this.createSalesInvoiceDto(packageData, sequenceNumber, filePath, receiptDto);
-        await this.saveSalesInvoice(salesInvoiceDto, packageData.packageId, sequenceNumber);
+        try {
+            // 1. Generate sequence number
+            const sequenceNumber = await this.generateSequenceNumber();
+            
+            // 2. Create sales invoice DTO directly from package data
+            const salesInvoiceDto = this.invoiceTransformer.createSalesInvoiceDtoFromPackage(
+                packageData, 
+                sequenceNumber
+            );
+            
+            // 3. Generate PDF and upload to S3
+            const filePath = await this.generateAndUploadPdfFromSalesInvoice(
+                salesInvoiceDto
+            );
+            
+            // 4. Update the sales invoice with the file path
+            salesInvoiceDto.filePath = filePath;
+            
+            // 5. Save sales invoice record
+            await this.saveSalesInvoice(salesInvoiceDto, packageData.packageId, sequenceNumber);
+        } catch (error) {
+            this.logger.error(
+                `Failed to process package invoice for ${packageData.packageId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
     }
 
-    // Generate sequence number
+    /**
+     * Generate sequence number for invoice
+     */
     async generateSequenceNumber(): Promise<string> {
-        const sequenceNumber = await this.counterService.incrementB2BSalesInvoiceNumber();
-        return sequenceNumber.toString();
+        try {
+            const sequenceNumber = await this.counterService.incrementB2BSalesInvoiceNumber();
+            return sequenceNumber.toString();
+        } catch (error) {
+            this.logger.error(
+                'Failed to generate sequence number', 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
     }
 
-    // Create receipt data using the service
-    async createReceiptData(packageData: PackageDto, sequenceNumber: string): Promise<any> {
-        return this.mapOrderWithItemsToReceiptDto(
-            packageData,
-            sequenceNumber
-        );
-    }
-
-    // Generate PDF and upload to S3
+    /**
+     * Generate PDF and upload to S3
+     */
     async generateAndUploadPdf(
         packageData: PackageDto, 
         receiptDto: any, 
         sequenceNumber: string
     ): Promise<string> {
-        const pdfBuffer = await this.generatePdfBuffer(receiptDto);
-        
-        const bucketName = process.env.AWS_S3_BUCKET_NAME || 'gdec-orderhub-invoices';
-        const stage = process.env.NODE_ENV || 'development';
-        const s3Key = `${stage}/invoices/tiktok/${packageData.shopId}/${packageData.orderId}/${packageData.packageId}/${sequenceNumber}.pdf`;
-        
-        const filePath = await this.uploadToS3(pdfBuffer, bucketName, s3Key);
-        console.log(`Successfully uploaded invoice to S3: ${filePath}`);
-        
-        return filePath;
-    }
-
-    // Upload to S3
-    async uploadToS3(pdfBuffer: Buffer, bucketName: string, key: string): Promise<string> {
-        const command = new PutObjectCommand({
-            Bucket: bucketName,
-            Key: key,
-            Body: pdfBuffer,
-            ContentType: 'application/pdf',
-            ACL: 'private'
-        });
-
         try {
-            console.log(`Attempting S3 upload to bucket: ${bucketName}, key: ${key}`);
+            this.validation.validateSequenceNumber(sequenceNumber);
             
-            await this.s3Client.send(command);
+            // Generate PDF buffer
+            const pdfBuffer = await this.pdfGenerator.generatePdfBuffer(receiptDto);
+            this.validation.validatePdfBuffer(pdfBuffer);
             
-            // Return the S3 URL using path-style format
-            const region = process.env.AWS_REGION || 'ap-southeast-1';
-            const s3Url = `https://s3.${region}.amazonaws.com/${bucketName}/${key}`;
+            // Generate S3 key
+            const s3Key = this.s3Upload.generateS3Key(
+                packageData.shopId, 
+                packageData.orderId, 
+                packageData.packageId, 
+                sequenceNumber
+            );
             
-            console.log(`Successfully uploaded to S3: ${s3Url}`);
-            return s3Url;
+            // Upload to S3
+            const filePath = await this.s3Upload.uploadPdf(pdfBuffer, s3Key);
+            
+            this.logger.log(
+                `Successfully uploaded invoice to S3: ${filePath}`, 
+                'TiktokReceiptService'
+            );
+            
+            return filePath;
         } catch (error) {
-            console.error('Failed to upload file to S3:', error);
-            
-            // If it's a DNS resolution error, try creating a new S3 client instance
-            if (error.message?.includes('getaddrinfo') || error.message?.includes('EAI_AGAIN')) {
-                console.log('DNS resolution error detected, attempting retry with new S3 client...');
-                
-                try {
-                    const retryS3Client = new S3Client({
-                        region: process.env.AWS_REGION || 'ap-southeast-1',
-                        credentials: {
-                            accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-                            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-                        },
-                        forcePathStyle: true,
-                        maxAttempts: 1,
-                        retryMode: 'adaptive'
-                    });
-
-                    await retryS3Client.send(command);
-                    
-                    const region = process.env.AWS_REGION || 'ap-southeast-1';
-                    const s3Url = `https://s3.${region}.amazonaws.com/${bucketName}/${key}`;
-                    
-                    console.log(`Successfully uploaded to S3 on retry: ${s3Url}`);
-                    return s3Url;
-                } catch (retryError) {
-                    console.error('Retry also failed:', retryError);
-                    throw new Error(`S3 upload failed even after retry: ${retryError.message}`);
-                }
-            }
-            
-            throw new Error(`S3 upload failed: ${error.message}`);
+            this.logger.error(
+                `Failed to generate and upload PDF for package ${packageData.packageId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
         }
     }
 
-    // Save sales invoice to database
+    /**
+     * Generate PDF and upload to S3 directly from SalesInvoiceDto
+     */
+    async generateAndUploadPdfFromSalesInvoice(salesInvoiceDto: SalesInvoiceDto): Promise<string> {
+        try {
+            this.validation.validateSequenceNumber(salesInvoiceDto.sequenceNumber);
+            
+            // Generate PDF buffer directly from SalesInvoiceDto
+            const pdfBuffer = await this.pdfGenerator.generatePdfBuffer(salesInvoiceDto);
+            this.validation.validatePdfBuffer(pdfBuffer);
+            
+            // Generate S3 key
+            const s3Key = this.s3Upload.generateS3Key(
+                salesInvoiceDto.shopId, 
+                salesInvoiceDto.orderId, 
+                salesInvoiceDto.packageId, 
+                salesInvoiceDto.sequenceNumber
+            );
+            
+            // Upload to S3
+            const filePath = await this.s3Upload.uploadPdf(pdfBuffer, s3Key);
+            
+            this.logger.log(
+                `Successfully uploaded invoice to S3: ${filePath}`, 
+                'TiktokReceiptService'
+            );
+            
+            return filePath;
+        } catch (error) {
+            this.logger.error(
+                `Failed to generate and upload PDF for sales invoice ${salesInvoiceDto.sequenceNumber}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Save sales invoice to database
+     */
     async saveSalesInvoice(
-        salesInvoiceDto: SalesInvoiceDto, 
+        salesInvoiceDto: any, 
         packageId: string, 
         sequenceNumber: string
     ): Promise<void> {
         try {
             await this.salesInvoiceService.create(salesInvoiceDto);
-            console.log(`Saved sales invoice record for package ${packageId} with sequence number ${sequenceNumber}`);
+            this.logger.log(
+                `Saved sales invoice record for package ${packageId} with sequence number ${sequenceNumber}`, 
+                'TiktokReceiptService'
+            );
         } catch (error) {
-            console.error(`Failed to save sales invoice record for package ${packageId}:`, error);
-            throw error; // Re-throw to be handled by caller
+            this.logger.error(
+                `Failed to save sales invoice record for package ${packageId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
         }
     }
 
-    // Helper method to create SalesInvoiceDto from PackageDto
-    createSalesInvoiceDto(
-        packageData: PackageDto, 
-        sequenceNumber: string, 
-        filePath: string, 
-        receiptDto: any
-    ): SalesInvoiceDto {
-        const packageInvoiceData = receiptDto.packages[0];
+    /**
+     * Reprint an existing sales invoice without changing the sequence number
+     * @param salesInvoiceId The ID of the existing sales invoice to reprint
+     * @returns The new S3 URL of the reprinted invoice
+     */
+    async reprintInvoice(salesInvoiceId: string): Promise<string> {
+        try {
+            this.validation.validateSalesInvoiceId(salesInvoiceId);
+            this.logger.log(`Starting reprint for sales invoice ID: ${salesInvoiceId}`, 'TiktokReceiptService');
+
+            // 1. Fetch the existing sales invoice
+            const existingInvoice = await this.salesInvoiceService.findOne({ id: salesInvoiceId });
+            if (!existingInvoice) {
+                throw new Error(`Sales invoice not found with ID: ${salesInvoiceId}`);
+            }
+
+            this.logger.log(
+                `Reprinting invoice with sequence number: ${existingInvoice.sequenceNumber}`, 
+                'TiktokReceiptService'
+            );
+
+            // Log detailed customer information before reprint
+            this.logger.log('=== REPRINT DATA DETAILS ===', 'TiktokReceiptService');
+            this.logger.log(`Sales Invoice ID: ${existingInvoice.id}`, 'TiktokReceiptService');
+            this.logger.log(`Sequence Number: ${existingInvoice.sequenceNumber}`, 'TiktokReceiptService');
+            this.logger.log(`Customer Name: ${existingInvoice.customerName}`, 'TiktokReceiptService');
+            this.logger.log(`Customer Address: ${existingInvoice.customerAddress}`, 'TiktokReceiptService');
+            this.logger.log(`Customer TIN: ${existingInvoice.customerTin}`, 'TiktokReceiptService');
+            this.logger.log(`Billing Address Object: ${JSON.stringify(existingInvoice.billingAddress, null, 2)}`, 'TiktokReceiptService');
+            this.logger.log(`Shipping Address Object: ${JSON.stringify(existingInvoice.shippingAddress, null, 2)}`, 'TiktokReceiptService');
+            this.logger.log(`Account Details: ${JSON.stringify(existingInvoice.accountDetails, null, 2)}`, 'TiktokReceiptService');
+            this.logger.log(`Order Number: ${existingInvoice.orderNumber}`, 'TiktokReceiptService');
+            this.logger.log(`Payment Method: ${existingInvoice.paymentMethod}`, 'TiktokReceiptService');
+            this.logger.log(`Invoice Printed Date: ${existingInvoice.invoicePrintedDate}`, 'TiktokReceiptService');
+            this.logger.log(`Amount Due: ${existingInvoice.amountDue}`, 'TiktokReceiptService');
+            this.logger.log(`Updated At: ${existingInvoice.updatedAt}`, 'TiktokReceiptService');
+            this.logger.log('=== END REPRINT DATA DETAILS ===', 'TiktokReceiptService');
+
+            // 2. Generate new PDF directly from the sales invoice data
+            const pdfBuffer = await this.pdfGenerator.generatePdfBuffer(existingInvoice);
+            this.validation.validatePdfBuffer(pdfBuffer);
+
+            // 4. Generate new S3 key for the reprint using sequence number
+            const originalKey = this.extractS3KeyFromUrl(existingInvoice.filePath);
+            const reprintKey = this.generateReprintS3Key(originalKey, existingInvoice.sequenceNumber);
+
+            // 5. Upload the reprinted PDF to S3
+            const newFilePath = await this.s3Upload.uploadPdf(pdfBuffer, reprintKey);
+
+            // 6. Update the sales invoice record with new file path
+            await this.updateInvoiceFilePath(salesInvoiceId, newFilePath);
+
+            this.logger.log(
+                `Successfully reprinted invoice by transforming sales invoice data. Sales Invoice ID: ${salesInvoiceId}, New file path: ${newFilePath}`,
+                'TiktokReceiptService'
+            );
+
+            return newFilePath;
+        } catch (error) {
+            this.logger.error(
+                `Failed to reprint sales invoice ID: ${salesInvoiceId}`,
+                error,
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Generate PDF for reprint using existing sequence number
+     */
+    /**
+     * Log the reprint activity (simplified approach)
+     * Note: Update method depends on the actual SalesInvoiceService interface
+     */
+    async logReprintActivity(invoiceId: string | number, newFilePath: string): Promise<void> {
+        try {
+            this.logger.log(
+                `Reprint completed - Invoice ID: ${invoiceId}, New file path: ${newFilePath}`, 
+                'TiktokReceiptService'
+            );
+            
+            // TODO: Implement actual database update when service interface is available
+            // This could be:
+            // - Direct database query
+            // - Service method call
+            // - Separate audit log entry
+        } catch (error) {
+            this.logger.error(
+                `Failed to log reprint activity for invoice ${invoiceId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+        }
+    }
+
+    /**
+     * Check if a sales invoice can be reprinted
+     * @param salesInvoiceId The ID of the sales invoice to check
+     * @returns True if the invoice exists and can be reprinted
+     */
+    async canReprintInvoice(salesInvoiceId: string): Promise<boolean> {
+        try {
+            const existingInvoice = await this.salesInvoiceService.findOne({ id: salesInvoiceId });
+            return !!existingInvoice && !!existingInvoice.invoiceContent;
+        } catch (error) {
+            this.logger.error(
+                `Failed to check if sales invoice ${salesInvoiceId} can be reprinted`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            return false;
+        }
+    }
+
+    /**
+     * Get existing sales invoice details
+     * @param salesInvoiceId The ID of the sales invoice
+     * @returns The sales invoice record or null if not found
+     */
+    async getExistingInvoice(salesInvoiceId: string) {
+        try {
+            return await this.salesInvoiceService.findOne({ id: salesInvoiceId });
+        } catch (error) {
+            this.logger.error(
+                `Failed to fetch sales invoice ${salesInvoiceId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            return null;
+        }
+    }
+
+    /**
+     * Transform order data into packages for invoice generation
+     */
+    transformToPackages(orderData: TiktokOrderDto & { items: (TiktokOrderItemDto & { quantity: number })[] }): PackageDto[] {
+        return this.invoiceTransformer.transformToPackages(orderData);
+    }
+
+    /**
+     * Extract S3 key from full S3 URL
+     */
+    private extractS3KeyFromUrl(s3Url: string): string {
+        try {
+            const url = new URL(s3Url);
+            // Remove leading slash and decode URL components
+            return decodeURIComponent(url.pathname.substring(1));
+        } catch (error) {
+            this.logger.error(`Failed to extract S3 key from URL: ${s3Url}`, error, 'TiktokReceiptService');
+            throw new Error(`Invalid S3 URL format: ${s3Url}`);
+        }
+    }
+
+    /**
+     * Generate S3 key for reprinted invoice
+     */
+    private generateReprintS3Key(originalKey: string, sequenceNumber: string): string {
+        const keyParts = originalKey.split('/');
+        const fileName = keyParts.pop() || 'invoice.pdf';
         
-        const salesInvoiceDto = new SalesInvoiceDto();
+        // Use cleaner naming convention: ${sequence}_reprint.pdf
+        const reprintFileName = `${sequenceNumber}_reprint.pdf`;
         
-        // Basic required fields
-        salesInvoiceDto.sequenceNumber = sequenceNumber;
-        salesInvoiceDto.orderId = packageData.orderId;
-        salesInvoiceDto.shopId = packageData.shopId;
-        salesInvoiceDto.packageId = packageData.packageId;
-        salesInvoiceDto.filePath = filePath;
-        
-        // Financial details
-        salesInvoiceDto.amountDue = packageInvoiceData.amount_due.toString();
-        salesInvoiceDto.vatableSales = packageInvoiceData.vatable_sales.toString();
-        salesInvoiceDto.vatAmount = packageInvoiceData.vat_amount.toString();
-        salesInvoiceDto.subtotalNet = packageInvoiceData.subtotal_net.toString();
-        salesInvoiceDto.totalDiscount = packageInvoiceData.total_discount.toString();
-        salesInvoiceDto.vatExemptSales = packageInvoiceData.vat_exempt_sales?.toString() || '0';
-        salesInvoiceDto.vatZeroRatedSales = packageInvoiceData.vat_zero_rated_sales?.toString() || '0';
-        salesInvoiceDto.totalNetAmount = packageInvoiceData.subtotal_net.toString();
-        salesInvoiceDto.grossAmount = packageInvoiceData.amount_due.toString();
-        
-        // Document details
-        salesInvoiceDto.pageNumber = packageInvoiceData.page_number;
-        salesInvoiceDto.totalPages = packageInvoiceData.total_pages;
-        salesInvoiceDto.generatedAt = new Date();
-        salesInvoiceDto.invoiceDate = new Date();
-        salesInvoiceDto.invoicePrintedDate = new Date();
-        
-        // Order and customer information
-        salesInvoiceDto.orderNumber = packageInvoiceData.order_number;
-        salesInvoiceDto.customerName = packageInvoiceData.billing_address?.full_name || packageInvoiceData.shipping_address?.full_name;
-        salesInvoiceDto.customerTin = packageInvoiceData.billing_address?.tax_identification_number || packageInvoiceData.account_tax_identification_number;
-        salesInvoiceDto.customerAddress = packageInvoiceData.billing_address?.full_address || packageInvoiceData.shipping_address?.full_address;
-        salesInvoiceDto.paymentMethod = packageInvoiceData.payment_method;
-        salesInvoiceDto.currency = 'PHP';
-        salesInvoiceDto.invoiceStatus = 'generated';
-        
-        // JSONB data for comprehensive storage
-        salesInvoiceDto.invoiceContent = receiptDto;
-        salesInvoiceDto.billingAddress = packageInvoiceData.billing_address;
-        salesInvoiceDto.shippingAddress = packageInvoiceData.shipping_address;
-        salesInvoiceDto.lineItems = packageInvoiceData.items || [];
-        salesInvoiceDto.accountDetails = {
-            name: packageInvoiceData.account_name,
-            fullAddress: packageInvoiceData.account_full_address,
-            taxIdentificationNumber: packageInvoiceData.account_tax_identification_number
-        };
-        salesInvoiceDto.taxDetails = {
-            vatAmount: packageInvoiceData.vat_amount,
-            vatableSales: packageInvoiceData.vatable_sales,
-            vatExemptSales: packageInvoiceData.vat_exempt_sales || 0,
-            vatZeroRatedSales: packageInvoiceData.vat_zero_rated_sales || 0,
-            taxRate: '12%',
-            totalBeforeTax: packageInvoiceData.subtotal_net,
-            totalAfterTax: packageInvoiceData.amount_due
-        };
-        
-        return salesInvoiceDto;
+        return [...keyParts, reprintFileName].join('/');
+    }
+
+    /**
+     * Update the file path of an existing sales invoice
+     */
+    private async updateInvoiceFilePath(salesInvoiceId: string, newFilePath: string, updatedReceiptDto?: any): Promise<void> {
+        try {
+            this.logger.log(`Updating file path for sales invoice ${salesInvoiceId} to: ${newFilePath}`, 'TiktokReceiptService');
+            
+            // Prepare update data
+            const updateData: any = {
+                filePath: newFilePath,
+                generatedAt: new Date() // Update generation timestamp
+            };
+            
+            // Update invoice content if provided (for reprint with fresh data)
+            if (updatedReceiptDto) {
+                updateData.invoiceContent = updatedReceiptDto;
+            }
+            
+            // Use the proper update method instead of creating a new record
+            await this.salesInvoiceService.updateSalesInvoice(salesInvoiceId, updateData);
+            
+            this.logger.log(
+                `Successfully updated file path for sales invoice ${salesInvoiceId}`, 
+                'TiktokReceiptService'
+            );
+        } catch (error) {
+            this.logger.error(
+                `Failed to update file path for sales invoice ${salesInvoiceId}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Upload a buffer to S3 - delegates to S3UploadService
+     * This method provides a simple interface for controllers to upload files
+     */
+    async uploadToS3(buffer: Buffer, bucketName: string, key: string): Promise<string> {
+        try {
+            this.logger.log(
+                `Uploading file to S3 - Bucket: ${bucketName}, Key: ${key}`, 
+                'TiktokReceiptService'
+            );
+            
+            return await this.s3Upload.uploadPdf(buffer, key, bucketName);
+        } catch (error) {
+            this.logger.error(
+                `Failed to upload file to S3 - Bucket: ${bucketName}, Key: ${key}`, 
+                error, 
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
     }
 }

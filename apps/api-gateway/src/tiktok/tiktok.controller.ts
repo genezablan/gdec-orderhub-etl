@@ -47,11 +47,27 @@ export class BillingAddressDto {
     taxIdentificationNumber: string;
 }
 
+// DTO for shipping address
+export class ShippingAddressDto {
+    @IsOptional()
+    @IsString()
+    fullName: string;
+
+    @IsOptional()
+    @IsString()
+    fullAddress: string;
+}
+
 // DTO for updating sales invoice
 export class UpdateSalesInvoiceDto {
     @ValidateNested()
     @Type(() => BillingAddressDto)
     billingAddress: BillingAddressDto;
+
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => ShippingAddressDto)
+    shippingAddress?: ShippingAddressDto;
 }
 @Controller('tiktok')
 export class TiktokController {
@@ -275,6 +291,38 @@ export class TiktokController {
             }
             console.error(`Failed to update sales invoice ${id}:`, error);
             throw new InternalServerErrorException('Failed to update sales invoice');
+        }
+    }
+
+    @Post('sales-invoices/:salesInvoiceId/reprint')
+    async reprintInvoice(@Param('salesInvoiceId') salesInvoiceId: string) {
+        try {
+            console.log(`API Gateway: Reprint request for sales invoice: ${salesInvoiceId}`);
+            
+            const result = await this.tiktokService.reprintInvoice(salesInvoiceId);
+            
+            return {
+                success: true,
+                message: 'Invoice reprint request processed successfully',
+                data: result
+            };
+        } catch (error) {
+            console.error(`API Gateway: Failed to reprint sales invoice ${salesInvoiceId}:`, error);
+            
+            if (error instanceof NotFoundException) {
+                throw new NotFoundException({
+                    success: false,
+                    message: `Sales invoice ${salesInvoiceId} not found or cannot be reprinted`,
+                    salesInvoiceId
+                });
+            }
+            
+            throw new InternalServerErrorException({
+                success: false,
+                message: 'Failed to process reprint request',
+                error: error.message,
+                salesInvoiceId
+            });
         }
     }
 }

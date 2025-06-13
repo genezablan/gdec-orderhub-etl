@@ -10,6 +10,13 @@ import { HealthService } from '@app/health';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import awsConfig from './config/aws.config';
+import { 
+    PdfGeneratorService, 
+    S3UploadService, 
+    InvoiceTransformerService, 
+    TiktokReceiptConfigService,
+    ValidationService 
+} from './services';
 
 @Module({
     imports: [
@@ -34,6 +41,14 @@ import awsConfig from './config/aws.config';
         }),
     ],
     controllers: [TiktokReceiptController],
-    providers: [TiktokReceiptService, HealthService],
+    providers: [
+        TiktokReceiptService, 
+        HealthService,
+        PdfGeneratorService,
+        S3UploadService,
+        InvoiceTransformerService,
+        TiktokReceiptConfigService,
+        ValidationService
+    ],
 })
 export class TiktokReceiptModule {}
