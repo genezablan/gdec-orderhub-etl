@@ -1,42 +1,23 @@
-import { Controller, Get, Param, Inject, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { MessagePattern, RpcException } from '@nestjs/microservices';
 import { SalesInvoiceService } from '@app/database-orderhub';
 import { TiktokReceiptService } from './tiktok-receipt.service';
 import { InvoiceTransformerService } from './services';
 import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
 import { HealthService } from '@app/health';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 
 @Controller()
 export class TiktokReceiptController {
-    private readonly DEDUPLICATION_TTL_SECONDS = 300; // 5 minutes
-
     constructor(
         private readonly tiktokReceiptService: TiktokReceiptService,
         private readonly salesInvoiceService: SalesInvoiceService,
         private readonly healthService: HealthService,
-        private readonly invoiceTransformer: InvoiceTransformerService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache
+        private readonly invoiceTransformer: InvoiceTransformerService
     ) {}
 
     @MessagePattern('tiktok.order_loaded')
     async handleOrderLoaded(payload: any) {
         console.log('Received tiktok.order_loaded:', payload);
-        
-        // Create a unique key for deduplication
-        const deduplicationKey = `tiktok_order_processing:${payload.shopId}:${payload.orderId}`;
-        
-        // Check if this order is already being processed
-        const isProcessing = await this.cacheManager.get(deduplicationKey);
-        
-        if (isProcessing) {
-            console.log(`Order ${payload.orderId} for shop ${payload.shopId} is already being processed. Skipping duplicate request.`);
-            return;
-        }
-        
-        // Set the processing flag with TTL
-        await this.cacheManager.set(deduplicationKey, true, this.DEDUPLICATION_TTL_SECONDS * 1000);
         
         try {
             // 1. Fetch order data with items
@@ -52,8 +33,6 @@ export class TiktokReceiptController {
             }
         } catch (error) {
             console.error(`Error processing order ${payload.orderId}:`, error);
-            // Remove the processing flag on error so it can be retried
-            await this.cacheManager.del(deduplicationKey);
             throw error;
         }
         
