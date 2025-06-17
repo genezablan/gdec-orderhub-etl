@@ -75,9 +75,9 @@ export class TiktokReceiptController {
                 };
             }
 
-            // 3. Check if order has items
+            // 3. Check if order has valid items (those with DELIVERED or COMPLETED status)
             if (!orderData.items || orderData.items.length === 0) {
-                const message = `No items found for order ${payload.orderId}`;
+                const message = `No items with valid receipt status (${this.VALID_RECEIPT_STATUSES.join(' or ')}) found for order ${payload.orderId}. Only items with these statuses will be included in receipts.`;
                 console.warn(message);
                 return {
                     success: false,
@@ -251,6 +251,50 @@ export class TiktokReceiptController {
                 error: error.message,
                 salesInvoiceId: payload.salesInvoiceId
             });
+        }
+    }
+
+    @Get('debug/item-status/:orderId/:shopId')
+    async debugItemStatus(
+        @Param('orderId') orderId: string,
+        @Param('shopId') shopId: string
+    ) {
+        try {
+            console.log(`Debug item status endpoint called for order ${orderId} in shop ${shopId}`);
+            
+            // Get raw order data without filtering
+            const rawOrderData = await this.tiktokReceiptService.fetchRawOrderData(orderId, shopId);
+            
+            if (!rawOrderData || !rawOrderData.items) {
+                return {
+                    success: false,
+                    message: `Order ${orderId} not found or has no items`,
+                    orderId,
+                    shopId
+                };
+            }
+
+            // Get status analysis
+            const statusInfo = this.tiktokReceiptService.getItemStatusInfo(rawOrderData.items);
+
+            return {
+                success: true,
+                orderId,
+                shopId,
+                orderStatus: rawOrderData.status,
+                validReceiptStatuses: this.VALID_RECEIPT_STATUSES,
+                itemAnalysis: statusInfo,
+                timestamp: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error(`Failed to analyze item status for order ${orderId}:`, error);
+            return {
+                success: false,
+                message: error.message,
+                orderId,
+                shopId,
+                timestamp: new Date().toISOString()
+            };
         }
     }
 

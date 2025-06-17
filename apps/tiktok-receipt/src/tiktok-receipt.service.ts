@@ -16,6 +16,9 @@ import {
 
 @Injectable()
 export class TiktokReceiptService {
+    // Define valid statuses for items to be included in receipts
+    private readonly VALID_ITEM_STATUSES = ['COMPLETED', 'DELIVERED'];
+
     constructor(
         private readonly tiktokOrderService: TiktokOrderService,
         private readonly salesInvoiceService: SalesInvoiceService,
@@ -69,9 +72,7 @@ export class TiktokReceiptService {
             );
             throw error;
         }
-    }
-
-    /**
+    }    /**
      * Fetch order data with items and perform aggregation
      */
     async fetchOrderData(
@@ -88,8 +89,31 @@ export class TiktokReceiptService {
                 return null;
             }
 
+            // Get status information for debugging
+            const statusInfo = this.getItemStatusInfo(orderWithItems.items);
+            this.logger.log(
+                `Order ${orderId} item status analysis: ${JSON.stringify(statusInfo)}`,
+                'TiktokReceiptService'
+            );
+
+            // Filter items to only include those with valid receipt statuses
+            const validItems = this.filterItemsByStatus(orderWithItems.items);
+            
+            if (validItems.length === 0) {
+                this.logger.warn(
+                    `No items with valid receipt status found for order ${orderId}. Valid statuses: ${this.VALID_ITEM_STATUSES.join(', ')}. Status breakdown: ${JSON.stringify(statusInfo.statusBreakdown)}`,
+                    'TiktokReceiptService'
+                );
+                return null;
+            }
+
+            this.logger.log(
+                `Filtered items for order ${orderId}: ${validItems.length} of ${orderWithItems.items.length} items have valid receipt status`,
+                'TiktokReceiptService'
+            );
+
             // Aggregate items to consolidate duplicate items with quantities
-            const aggregatedItems = this.invoiceTransformer.aggregateOrderItems(orderWithItems.items);
+            const aggregatedItems = this.invoiceTransformer.aggregateOrderItems(validItems);
 
             return {
                 ...orderWithItems,
@@ -98,7 +122,31 @@ export class TiktokReceiptService {
         } catch (error) {
             this.logger.error(
                 `Failed to fetch order data for ${orderId}`, 
-                error, 
+                error,
+                'TiktokReceiptService'
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Fetch raw order data without status filtering (for debugging)
+     */
+    async fetchRawOrderData(
+        orderId: string, 
+        shopId: string
+    ): Promise<TiktokOrderDto | null> {
+        try {
+            const orderWithItems = await this.tiktokOrderService.findOrderWithItems({
+                orderId,
+                shopId
+            });
+
+            return orderWithItems;
+        } catch (error) {
+            this.logger.error(
+                `Failed to fetch raw order data for ${orderId}`, 
+                error,
                 'TiktokReceiptService'
             );
             throw error;
@@ -535,5 +583,75 @@ export class TiktokReceiptService {
             );
             throw error;
         }
+    }
+
+    /**
+     * Filter items to only include those with valid receipt statuses
+     */
+    private filterItemsByStatus(items: TiktokOrderItemDto[]): TiktokOrderItemDto[] {
+        return items.filter(item => {
+            // Check multiple status fields to ensure we catch all status types
+            const itemStatus = item.status || item.displayStatus || item.packageStatus;
+            
+            if (!itemStatus) {
+                this.logger.warn(
+                    `Item ${item.lineItemId} has no status information. Excluding from receipt.`,
+                    'TiktokReceiptService'
+                );
+                return false;
+            }
+
+            const isValidStatus = this.VALID_ITEM_STATUSES.includes(itemStatus);
+            
+            if (!isValidStatus) {
+                this.logger.debug(
+                    `Item ${item.lineItemId} has status "${itemStatus}" - excluding from receipt. Valid statuses: ${this.VALID_ITEM_STATUSES.join(', ')}`,
+                    'TiktokReceiptService'
+                );
+            }
+
+            return isValidStatus;
+        });
+    }
+
+    /**
+     * Get comprehensive status information for debugging
+     */
+    getItemStatusInfo(items: TiktokOrderItemDto[]): {
+        totalItems: number;
+        statusBreakdown: Record<string, number>;
+        validItems: number;
+        invalidItems: number;
+        itemsWithoutStatus: number;
+    } {
+        const statusBreakdown: Record<string, number> = {};
+        let validItems = 0;
+        let invalidItems = 0;
+        let itemsWithoutStatus = 0;
+
+        items.forEach(item => {
+            const itemStatus = item.status || item.displayStatus || item.packageStatus;
+            
+            if (!itemStatus) {
+                itemsWithoutStatus++;
+                statusBreakdown['NO_STATUS'] = (statusBreakdown['NO_STATUS'] || 0) + 1;
+            } else {
+                statusBreakdown[itemStatus] = (statusBreakdown[itemStatus] || 0) + 1;
+                
+                if (this.VALID_ITEM_STATUSES.includes(itemStatus)) {
+                    validItems++;
+                } else {
+                    invalidItems++;
+                }
+            }
+        });
+
+        return {
+            totalItems: items.length,
+            statusBreakdown,
+            validItems,
+            invalidItems,
+            itemsWithoutStatus
+        };
     }
 }
