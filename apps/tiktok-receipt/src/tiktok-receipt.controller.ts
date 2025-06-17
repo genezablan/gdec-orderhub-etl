@@ -5,9 +5,13 @@ import { TiktokReceiptService } from './tiktok-receipt.service';
 import { InvoiceTransformerService } from './services';
 import { TIKTOK_FETCHER_PATTERNS } from '@app/contracts/tiktok-fetcher/tiktok-fetcher.patterns';
 import { HealthService } from '@app/health';
+import { OrderLoadedPayloadDto, OrderProcessingResult } from '@app/contracts';
 
 @Controller()
 export class TiktokReceiptController {
+    // Define valid statuses for receipt generation
+    private readonly VALID_RECEIPT_STATUSES = ['COMPLETED', 'DELIVERED'];
+
     constructor(
         private readonly tiktokReceiptService: TiktokReceiptService,
         private readonly salesInvoiceService: SalesInvoiceService,
@@ -16,27 +20,115 @@ export class TiktokReceiptController {
     ) {}
 
     @MessagePattern('tiktok.order_loaded')
-    async handleOrderLoaded(payload: any) {
+    async handleOrderLoaded(payload: OrderLoadedPayloadDto): Promise<OrderProcessingResult> {
         console.log('Received tiktok.order_loaded:', payload);
         
         try {
+            // Validate required payload fields
+            if (!payload.orderId || !payload.shopId) {
+                const errorMessage = 'Invalid payload: orderId and shopId are required';
+                console.error(errorMessage, payload);
+                return {
+                    success: false,
+                    message: errorMessage,
+                    orderId: payload.orderId || 'unknown',
+                    shopId: payload.shopId || 'unknown'
+                };
+            }
+
             // 1. Fetch order data with items
             const orderData = await this.tiktokReceiptService.fetchOrderData(payload.orderId, payload.shopId);
             
-            if (orderData && orderData.items) {
-                // 2. Transform into packages
-                const packages = this.invoiceTransformer.transformToPackages(orderData);
-                
-                // 3. Generate receipts for each package
-                await this.tiktokReceiptService.processPackages(packages);
-                console.log(`Receipts generated for order ${payload.orderId} with ${packages.length} packages.`);
+            if (!orderData) {
+                const message = `Order not found: ${payload.orderId} in shop ${payload.shopId}`;
+                console.warn(message);
+                return {
+                    success: false,
+                    message,
+                    orderId: payload.orderId,
+                    shopId: payload.shopId
+                };
             }
+
+            // 2. Check order status for receipt generation eligibility
+            const orderStatus = orderData.status || payload.orderStatus;
+            if (!orderStatus) {
+                const message = `Order status not available for order ${payload.orderId}`;
+                console.warn(message);
+                return {
+                    success: false,
+                    message,
+                    orderId: payload.orderId,
+                    shopId: payload.shopId
+                };
+            }
+
+            if (!this.isValidReceiptStatus(orderStatus)) {
+                const message = `Receipt cannot be generated for order "${payload.orderId}" because its status is "${orderStatus}". Receipts can only be generated for orders with status: ${this.VALID_RECEIPT_STATUSES.join(' or ')}.`;
+                console.log(message);
+                return {
+                    success: false,
+                    message,
+                    orderId: payload.orderId,
+                    shopId: payload.shopId,
+                    orderStatus
+                };
+            }
+
+            // 3. Check if order has items
+            if (!orderData.items || orderData.items.length === 0) {
+                const message = `No items found for order ${payload.orderId}`;
+                console.warn(message);
+                return {
+                    success: false,
+                    message,
+                    orderId: payload.orderId,
+                    shopId: payload.shopId,
+                    orderStatus
+                };
+            }
+
+            // 4. Transform into packages
+            const packages = this.invoiceTransformer.transformToPackages(orderData);
+            
+            if (packages.length === 0) {
+                const message = `No packages could be created from order ${payload.orderId}`;
+                console.warn(message);
+                return {
+                    success: false,
+                    message,
+                    orderId: payload.orderId,
+                    shopId: payload.shopId,
+                    orderStatus
+                };
+            }
+
+            // 5. Generate receipts for each package
+            await this.tiktokReceiptService.processPackages(packages);
+            
+            const successMessage = `Receipts generated successfully for order ${payload.orderId} with ${packages.length} package(s). Order status: ${orderStatus}`;
+            console.log(successMessage);
+            
+            return {
+                success: true,
+                message: successMessage,
+                packagesProcessed: packages.length,
+                orderId: payload.orderId,
+                shopId: payload.shopId,
+                orderStatus
+            };
+
         } catch (error) {
-            console.error(`Error processing order ${payload.orderId}:`, error);
-            throw error;
+            const errorMessage = `Error processing order ${payload.orderId}: ${error.message}`;
+            console.error(errorMessage, error);
+            
+            return {
+                success: false,
+                message: errorMessage,
+                orderId: payload.orderId,
+                shopId: payload.shopId
+            };
         }
-        
-        console.log(`Order ${payload.orderId} processing completed successfully.`);
     }
 
     @Get('health')
@@ -160,5 +252,50 @@ export class TiktokReceiptController {
                 salesInvoiceId: payload.salesInvoiceId
             });
         }
+    }
+
+    /**
+     * Validates if an order status is eligible for receipt generation
+     */
+    private isValidReceiptStatus(status: string): boolean {
+        return this.VALID_RECEIPT_STATUSES.includes(status);
+    }
+
+    /**
+     * Creates a standardized error result for order processing
+     */
+    private createErrorResult(
+        message: string, 
+        orderId: string, 
+        shopId: string, 
+        orderStatus?: string
+    ): OrderProcessingResult {
+        return {
+            success: false,
+            message,
+            orderId,
+            shopId,
+            orderStatus
+        };
+    }
+
+    /**
+     * Creates a standardized success result for order processing
+     */
+    private createSuccessResult(
+        message: string, 
+        orderId: string, 
+        shopId: string, 
+        orderStatus: string,
+        packagesProcessed: number
+    ): OrderProcessingResult {
+        return {
+            success: true,
+            message,
+            packagesProcessed,
+            orderId,
+            shopId,
+            orderStatus
+        };
     }
 }
