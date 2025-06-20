@@ -64,6 +64,67 @@ npx ts-node scripts/verify-env-config.ts
 $ npm install
 ```
 
+## System Dependencies for PDF to JPG Conversion
+
+The API Gateway supports converting PDF invoices to JPG format using the `pdf2pic` library. This requires GraphicsMagick to be installed on your system.
+
+### Ubuntu/Debian
+
+```bash
+# Install GraphicsMagick
+sudo apt-get update
+sudo apt-get install graphicsmagick
+
+# Verify installation
+gm version
+```
+
+### CentOS/RHEL/Amazon Linux
+
+```bash
+# Install GraphicsMagick
+sudo yum install GraphicsMagick
+# OR for newer versions
+sudo dnf install GraphicsMagick
+
+# Verify installation
+gm version
+```
+
+### macOS
+
+```bash
+# Using Homebrew
+brew install graphicsmagick
+
+# Verify installation
+gm version
+```
+
+### Docker
+
+If running in Docker, add this to your Dockerfile:
+
+```dockerfile
+# For Ubuntu/Debian based images
+RUN apt-get update && apt-get install -y graphicsmagick
+
+# For Alpine based images
+RUN apk add --no-cache graphicsmagick
+```
+
+### Usage
+
+Once GraphicsMagick is installed, you can download invoices as JPG by adding the `fileType` parameter:
+
+```bash
+# Download as PDF (default)
+GET /tiktok/download/invoice?file=<s3-url>
+
+# Download as JPG
+GET /tiktok/download/invoice?file=<s3-url>&fileType=jpg
+```
+
 ## Compile and run the project
 
 ```bash

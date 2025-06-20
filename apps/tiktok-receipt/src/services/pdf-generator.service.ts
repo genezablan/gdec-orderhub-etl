@@ -159,8 +159,17 @@ export class PdfGeneratorService implements OnModuleDestroy {
             
             await page.pdf({ 
                 path: outputPath, 
+                height: '297mm',
+                width: '210mm',
                 format: 'A4',
-                printBackground: true 
+                margin: {
+                    top: '0cm',
+                    right: '0cm',
+                    bottom: '0cm',
+                    left: '0cm',
+                },
+                scale: 1.32,
+                printBackground: true,
             });
             
             await page.close();
@@ -190,8 +199,17 @@ export class PdfGeneratorService implements OnModuleDestroy {
             });
             
             const pdfData = await page.pdf({ 
+                height: '297mm',
+                width: '210mm',
                 format: 'A4',
-                printBackground: true 
+                margin: {
+                    top: '0cm',
+                    right: '0cm',
+                    bottom: '0cm',
+                    left: '0cm',
+                },
+                scale: 1.32,
+                printBackground: true,
             });
             
             await page.close();
@@ -200,6 +218,65 @@ export class PdfGeneratorService implements OnModuleDestroy {
             return Buffer.from(pdfData);
         } catch (error) {
             this.logger.error(`Failed to generate PDF buffer: ${error.message}`, error, 'PdfGeneratorService');
+            throw error;
+        }
+    }
+
+    async generateJpgBuffer(data: SalesInvoiceDto): Promise<Buffer> {
+        try {
+            const dataCopy = JSON.parse(JSON.stringify(data));
+            this.logger.log('Generating JPG buffer with data...', 'PdfGeneratorService');
+            this.logger.log(`Data keys: ${Object.keys(dataCopy)}`, 'PdfGeneratorService');
+            
+            const html = this.renderReceiptHtml(dataCopy);
+            this.logger.log('HTML rendered successfully, creating JPG...', 'PdfGeneratorService');
+            
+            const browser = await this.getBrowser();
+            const page = await browser.newPage();
+            
+            // Set viewport for consistent image dimensions (A4 proportions)
+            await page.setViewport({
+                width: 794,  // A4 width in pixels at 96 DPI
+                height: 1123, // A4 height in pixels at 96 DPI
+                deviceScaleFactor: 2 // Higher resolution for better quality
+            });
+            
+            await page.setContent(html, { 
+                waitUntil: 'networkidle0',
+                timeout: 30000 
+            });
+            
+            const jpgData = await page.screenshot({
+                type: 'jpeg',
+                quality: 90, // JPG quality (0-100)
+                fullPage: true,
+                encoding: 'binary'
+            });
+            
+            await page.close();
+            this.logger.log('JPG buffer generated successfully', 'PdfGeneratorService');
+            
+            return Buffer.from(jpgData);
+        } catch (error) {
+            this.logger.error(`Failed to generate JPG buffer: ${error.message}`, error, 'PdfGeneratorService');
+            throw error;
+        }
+    }
+
+    async generateJpg(data: SalesInvoiceDto, outputPath: string): Promise<void> {
+        try {
+            // Ensure output directory exists
+            const dir = path.dirname(outputPath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+
+            const jpgBuffer = await this.generateJpgBuffer(data);
+            fs.writeFileSync(outputPath, jpgBuffer);
+            
+            this.logger.log(`JPG generated successfully: ${outputPath}`, 'PdfGeneratorService');
+        } catch (error) {
+            this.logger.error('Failed to generate JPG', error, 'PdfGeneratorService');
             throw error;
         }
     }

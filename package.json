@@ -80,6 +80,7 @@
     "mongoose": "^8.15.0",
     "nest-winston": "^1.10.2",
     "passport-jwt": "^4.0.1",
+    "pdf2pic": "^3.2.0",
     "pg": "^8.16.0",
     "pug": "^3.0.3",
     "puppeteer": "^24.9.0",

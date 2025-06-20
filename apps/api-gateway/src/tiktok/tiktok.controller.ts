@@ -13,6 +13,10 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { IsString, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+const pdf2pic = require('pdf2pic');
 
 // DTO for updating unmasked details
 export class UpdateUnmaskedDetailsDto {
@@ -128,11 +132,17 @@ export class TiktokController {
     @Get('download/invoice')
     async downloadInvoice(
         @Query('file') filePath: string,
+        @Query('fileType') fileType: string = 'pdf',
         @Res({ passthrough: true }) res: Response,
     ): Promise<StreamableFile> {
         try {
             if (!filePath) {
                 throw new BadRequestException('File path is required');
+            }
+
+            // Validate fileType parameter
+            if (!['pdf', 'jpg', 'jpeg'].includes(fileType.toLowerCase())) {
+                throw new BadRequestException('File type must be either pdf, jpg, or jpeg');
             }
 
             // Security check: ensure the file path is pointing to a PDF file
@@ -142,7 +152,7 @@ export class TiktokController {
 
             // Check if it's an S3 URL
             if (filePath.startsWith('https://s3.') || filePath.startsWith('https://') && filePath.includes('.amazonaws.com')) {
-                return await this.downloadFromS3(filePath, res);
+                return await this.downloadFromS3(filePath, res, fileType.toLowerCase());
             } else {
                 throw new BadRequestException('Only S3 URLs are supported for invoice downloads');
             }
@@ -158,6 +168,7 @@ export class TiktokController {
     private async downloadFromS3(
         s3Url: string, 
         res: Response, 
+        fileType: string = 'pdf'
     ): Promise<StreamableFile> {
         try {
             // Parse S3 URL to extract bucket and key
@@ -181,7 +192,13 @@ export class TiktokController {
                 throw new NotFoundException('File not found in S3');
             }
 
-            console.log('response:', url);
+            console.log('S3 response details:', {
+                ContentType: response.ContentType,
+                ContentLength: response.ContentLength,
+                LastModified: response.LastModified,
+                ETag: response.ETag
+            });
+
             // Extract sequence number from the original filename (without .pdf extension)
             const originalFileName = key.split('/').pop() || 'invoice.pdf';
             const sequenceNumber = originalFileName.replace('.pdf', '');
@@ -189,12 +206,16 @@ export class TiktokController {
             // Generate timestamp
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Remove milliseconds and format
             
-            // Generate customer-friendly filename
+            // If JPG is requested, convert PDF to JPG
+            if (fileType === 'jpg' || fileType === 'jpeg') {
+                console.log('Converting PDF to JPG format...');
+                return await this.convertPdfToJpg(response.Body as Readable, sequenceNumber, timestamp, res);
+            }
+            
+            // Generate customer-friendly filename for PDF
             const fileName = `TikTok_Invoice_${sequenceNumber}_${timestamp}.pdf`;
             
-        
-
-            // Set response headers
+            // Set response headers for PDF
             res.set({
                 'Content-Type': response.ContentType || 'application/pdf',
                 'Content-Length': response.ContentLength?.toString() || '',
@@ -323,6 +344,171 @@ export class TiktokController {
                 error: error.message,
                 salesInvoiceId
             });
+        }
+    }
+
+    private async convertPdfToJpg(
+        pdfStream: Readable,
+        sequenceNumber: string,
+        timestamp: string,
+        res: Response
+    ): Promise<StreamableFile> {
+        let tempPdfPath: string | null = null;
+        let tempDir: string | null = null;
+        
+        try {
+            console.log('Starting PDF to JPG conversion...');
+            
+            // Convert stream to buffer
+            const chunks: Buffer[] = [];
+            for await (const chunk of pdfStream) {
+                chunks.push(chunk);
+            }
+            const pdfBuffer = Buffer.concat(chunks);
+            
+            console.log(`PDF buffer size: ${pdfBuffer.length} bytes`);
+            
+            // Validate PDF buffer
+            if (pdfBuffer.length === 0) {
+                throw new Error('PDF buffer is empty');
+            }
+            
+            // Check if buffer starts with PDF header
+            const pdfHeader = pdfBuffer.slice(0, 4).toString();
+            if (pdfHeader !== '%PDF') {
+                console.error('Invalid PDF header:', pdfHeader);
+                throw new Error('Invalid PDF file - missing PDF header');
+            }
+            
+            // Create temporary directory for processing
+            tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pdf-convert-'));
+            tempPdfPath = path.join(tempDir, `temp-${Date.now()}.pdf`);
+            
+            console.log(`Writing PDF to temporary file: ${tempPdfPath}`);
+            
+            // Write PDF buffer to temporary file
+            fs.writeFileSync(tempPdfPath, pdfBuffer);
+            
+            // Verify file was written correctly
+            const fileStats = fs.statSync(tempPdfPath);
+            console.log(`Temporary PDF file size: ${fileStats.size} bytes`);
+            
+            if (fileStats.size !== pdfBuffer.length) {
+                throw new Error('File write verification failed - size mismatch');
+            }
+            
+            // Use pdf2pic to convert PDF to JPG
+            console.log('Starting pdf2pic conversion...');
+            
+            const convert = pdf2pic.fromPath(tempPdfPath, {
+                density: 150,           // DPI (dots per inch) - higher for better quality
+                saveFilename: "page",   // Filename prefix for output files
+                savePath: tempDir,      // Directory to save converted images
+                format: "jpg",          // Output format
+                width: 794,             // A4 width in pixels at 96 DPI
+                height: 1123,           // A4 height in pixels at 96 DPI
+                quality: 75,            // JPEG quality
+                gmPath: "/usr/bin/gm"   // Explicitly set GraphicsMagick path
+            });
+            
+            console.log('Converting first page of PDF...');
+            
+            // Convert first page (most invoices are single page) - use file approach
+            const convertResult = await convert(1, { responseType: "image" });
+            
+            console.log('Conversion result:', {
+                hasResult: !!convertResult,
+                resultType: typeof convertResult,
+                resultKeys: convertResult ? Object.keys(convertResult) : [],
+                resultValue: convertResult
+            });
+            
+            if (!convertResult) {
+                throw new Error('Failed to convert PDF to JPG - no result returned');
+            }
+            
+            // Check if convertResult has a path or name property
+            let imagePath: string | null = null;
+            if (typeof convertResult === 'string') {
+                imagePath = convertResult;
+            } else if (convertResult.path) {
+                imagePath = convertResult.path;
+            } else if (convertResult.name) {
+                imagePath = path.join(tempDir, convertResult.name);
+            } else {
+                // Try to find the converted file in the temp directory
+                const files = fs.readdirSync(tempDir);
+                const jpgFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.jpeg'));
+                if (jpgFiles.length > 0) {
+                    imagePath = path.join(tempDir, jpgFiles[0]);
+                }
+            }
+            
+            console.log('Image path:', imagePath);
+            
+            if (!imagePath || !fs.existsSync(imagePath)) {
+                // List all files in temp directory for debugging
+                const tempFiles = fs.readdirSync(tempDir);
+                console.log('Files in temp directory:', tempFiles);
+                throw new Error(`Converted JPG file not found. Expected: ${imagePath}, Available files: ${tempFiles.join(', ')}`);
+            }
+            
+            // Read the JPG file as buffer
+            const jpgBuffer = fs.readFileSync(imagePath);
+            
+            if (jpgBuffer.length === 0) {
+                throw new Error('Converted JPG file is empty');
+            }
+            
+            console.log(`PDF converted to JPG successfully using pdf2pic. JPG size: ${jpgBuffer.length} bytes`);
+            
+            // Generate customer-friendly filename for JPG
+            const fileName = `TikTok_Invoice_${sequenceNumber}_${timestamp}.jpg`;
+            
+            // Set response headers for JPG
+            res.set({
+                'Content-Type': 'image/jpeg',
+                'Content-Length': jpgBuffer.length.toString(),
+                'Content-Disposition': `attachment; filename="${fileName}"`,
+            });
+            
+            return new StreamableFile(jpgBuffer);
+            
+        } catch (error) {
+            console.error('PDF to JPG conversion error:', error);
+            console.error('Error stack:', error.stack);
+            
+            // Provide more specific error messages
+            if (error.message.includes('PDF header')) {
+                throw new BadRequestException('Invalid PDF file format');
+            } else if (error.message.includes('empty')) {
+                throw new BadRequestException('PDF file is empty or corrupted');
+            } else {
+                throw new InternalServerErrorException(`Failed to convert PDF to JPG: ${error.message}`);
+            }
+        } finally {
+            // Clean up temporary files
+            try {
+                if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+                    console.log(`Cleaning up temporary PDF file: ${tempPdfPath}`);
+                    fs.unlinkSync(tempPdfPath);
+                }
+                if (tempDir && fs.existsSync(tempDir)) {
+                    // Remove any remaining files in temp directory
+                    const files = fs.readdirSync(tempDir);
+                    files.forEach(file => {
+                        const filePath = path.join(tempDir!, file);
+                        if (fs.existsSync(filePath)) {
+                            console.log(`Cleaning up temporary file: ${filePath}`);
+                            fs.unlinkSync(filePath);
+                        }
+                    });
+                    fs.rmdirSync(tempDir);
+                    console.log(`Cleaned up temporary directory: ${tempDir}`);
+                }
+            } catch (cleanupError) {
+                console.warn('Failed to clean up temporary files:', cleanupError);
+            }
         }
     }
 }
