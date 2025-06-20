@@ -141,8 +141,8 @@ export class TiktokController {
             }
 
             // Validate fileType parameter
-            if (!['pdf', 'jpg', 'jpeg'].includes(fileType.toLowerCase())) {
-                throw new BadRequestException('File type must be either pdf, jpg, or jpeg');
+            if (!['pdf', 'jpg', 'jpeg', 'png'].includes(fileType.toLowerCase())) {
+                throw new BadRequestException('File type must be pdf, jpg, jpeg, or png');
             }
 
             // Security check: ensure the file path is pointing to a PDF file
@@ -206,10 +206,10 @@ export class TiktokController {
             // Generate timestamp
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Remove milliseconds and format
             
-            // If JPG is requested, convert PDF to JPG
-            if (fileType === 'jpg' || fileType === 'jpeg') {
-                console.log('Converting PDF to JPG format...');
-                return await this.convertPdfToJpg(response.Body as Readable, sequenceNumber, timestamp, res);
+            // If JPG or PNG is requested, convert PDF to image
+            if (fileType === 'jpg' || fileType === 'jpeg' || fileType === 'png') {
+                console.log(`Converting PDF to ${fileType.toUpperCase()} format...`);
+                return await this.convertPdfToImage(response.Body as Readable, sequenceNumber, timestamp, res, fileType);
             }
             
             // Generate customer-friendly filename for PDF
@@ -347,17 +347,18 @@ export class TiktokController {
         }
     }
 
-    private async convertPdfToJpg(
+    private async convertPdfToImage(
         pdfStream: Readable,
         sequenceNumber: string,
         timestamp: string,
-        res: Response
+        res: Response,
+        imageFormat: string
     ): Promise<StreamableFile> {
         let tempPdfPath: string | null = null;
         let tempDir: string | null = null;
         
         try {
-            console.log('Starting PDF to JPG conversion...');
+            console.log(`Starting PDF to ${imageFormat.toUpperCase()} conversion...`);
             
             // Convert stream to buffer
             const chunks: Buffer[] = [];
@@ -397,19 +398,29 @@ export class TiktokController {
                 throw new Error('File write verification failed - size mismatch');
             }
             
-            // Use pdf2pic to convert PDF to JPG
-            console.log('Starting pdf2pic conversion...');
+            // Use pdf2pic to convert PDF to image
+            console.log(`Starting pdf2pic conversion to ${imageFormat.toUpperCase()}...`);
             
-            const convert = pdf2pic.fromPath(tempPdfPath, {
-                density: 150,           // DPI (dots per inch) - higher for better quality
+            // Determine format and quality settings
+            const isJpg = imageFormat === 'jpg' || imageFormat === 'jpeg';
+            const outputFormat = isJpg ? 'jpg' : 'png';
+            
+            const convertOptions: any = {
+                density: 300,           // High DPI for sharp text
                 saveFilename: "page",   // Filename prefix for output files
                 savePath: tempDir,      // Directory to save converted images
-                format: "jpg",          // Output format
-                width: 794,             // A4 width in pixels at 96 DPI
-                height: 1123,           // A4 height in pixels at 96 DPI
-                quality: 75,            // JPEG quality
+                format: outputFormat,   // JPG or PNG format
+                width: 794,             // Keep the same A4 width in pixels
+                height: 1123,           // Keep the same A4 height in pixels
                 gmPath: "/usr/bin/gm"   // Explicitly set GraphicsMagick path
-            });
+            };
+            
+            // Only add quality setting for JPG (PNG is lossless)
+            if (isJpg) {
+                convertOptions.quality = 90;
+            }
+            
+            const convert = pdf2pic.fromPath(tempPdfPath, convertOptions);
             
             console.log('Converting first page of PDF...');
             
@@ -424,7 +435,7 @@ export class TiktokController {
             });
             
             if (!convertResult) {
-                throw new Error('Failed to convert PDF to JPG - no result returned');
+                throw new Error(`Failed to convert PDF to ${imageFormat.toUpperCase()} - no result returned`);
             }
             
             // Check if convertResult has a path or name property
@@ -438,9 +449,11 @@ export class TiktokController {
             } else {
                 // Try to find the converted file in the temp directory
                 const files = fs.readdirSync(tempDir);
-                const jpgFiles = files.filter(f => f.endsWith('.jpg') || f.endsWith('.jpeg'));
-                if (jpgFiles.length > 0) {
-                    imagePath = path.join(tempDir, jpgFiles[0]);
+                const imageFiles = files.filter(f => 
+                    f.endsWith('.jpg') || f.endsWith('.jpeg') || f.endsWith('.png')
+                );
+                if (imageFiles.length > 0) {
+                    imagePath = path.join(tempDir, imageFiles[0]);
                 }
             }
             
@@ -450,32 +463,33 @@ export class TiktokController {
                 // List all files in temp directory for debugging
                 const tempFiles = fs.readdirSync(tempDir);
                 console.log('Files in temp directory:', tempFiles);
-                throw new Error(`Converted JPG file not found. Expected: ${imagePath}, Available files: ${tempFiles.join(', ')}`);
+                throw new Error(`Converted ${imageFormat.toUpperCase()} file not found. Expected: ${imagePath}, Available files: ${tempFiles.join(', ')}`);
             }
             
-            // Read the JPG file as buffer
-            const jpgBuffer = fs.readFileSync(imagePath);
+            // Read the image file as buffer
+            const imageBuffer = fs.readFileSync(imagePath);
             
-            if (jpgBuffer.length === 0) {
-                throw new Error('Converted JPG file is empty');
+            if (imageBuffer.length === 0) {
+                throw new Error(`Converted ${imageFormat.toUpperCase()} file is empty`);
             }
             
-            console.log(`PDF converted to JPG successfully using pdf2pic. JPG size: ${jpgBuffer.length} bytes`);
+            console.log(`PDF converted to ${imageFormat.toUpperCase()} successfully using pdf2pic. Image size: ${imageBuffer.length} bytes`);
             
-            // Generate customer-friendly filename for JPG
-            const fileName = `TikTok_Invoice_${sequenceNumber}_${timestamp}.jpg`;
+            // Generate customer-friendly filename
+            const fileName = `TikTok_Invoice_${sequenceNumber}_${timestamp}.${outputFormat}`;
             
-            // Set response headers for JPG
+            // Set response headers
+            const mimeType = isJpg ? 'image/jpeg' : 'image/png';
             res.set({
-                'Content-Type': 'image/jpeg',
-                'Content-Length': jpgBuffer.length.toString(),
+                'Content-Type': mimeType,
+                'Content-Length': imageBuffer.length.toString(),
                 'Content-Disposition': `attachment; filename="${fileName}"`,
             });
             
-            return new StreamableFile(jpgBuffer);
+            return new StreamableFile(imageBuffer);
             
         } catch (error) {
-            console.error('PDF to JPG conversion error:', error);
+            console.error(`PDF to ${imageFormat.toUpperCase()} conversion error:`, error);
             console.error('Error stack:', error.stack);
             
             // Provide more specific error messages
@@ -484,7 +498,7 @@ export class TiktokController {
             } else if (error.message.includes('empty')) {
                 throw new BadRequestException('PDF file is empty or corrupted');
             } else {
-                throw new InternalServerErrorException(`Failed to convert PDF to JPG: ${error.message}`);
+                throw new InternalServerErrorException(`Failed to convert PDF to ${imageFormat.toUpperCase()}: ${error.message}`);
             }
         } finally {
             // Clean up temporary files

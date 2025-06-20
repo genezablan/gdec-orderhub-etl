@@ -115,15 +115,23 @@ RUN apk add --no-cache graphicsmagick
 
 ### Usage
 
-Once GraphicsMagick is installed, you can download invoices as JPG by adding the `fileType` parameter:
+Once GraphicsMagick is installed, you can download invoices as JPG or PNG by adding the `fileType` parameter:
 
 ```bash
 # Download as PDF (default)
 GET /tiktok/download/invoice?file=<s3-url>
 
-# Download as JPG
+# Download as JPG (lossy compression, smaller file size)
 GET /tiktok/download/invoice?file=<s3-url>&fileType=jpg
+
+# Download as PNG (lossless compression, better quality for text)
+GET /tiktok/download/invoice?file=<s3-url>&fileType=png
 ```
+
+**Format Recommendations:**
+- **PDF**: Best for documents, smallest file size, scalable
+- **PNG**: Best image quality for text, lossless compression, larger file size
+- **JPG**: Good for general use, lossy compression, medium file size
 
 ## Compile and run the project
 

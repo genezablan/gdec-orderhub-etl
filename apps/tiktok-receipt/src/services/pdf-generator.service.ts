@@ -248,7 +248,7 @@ export class PdfGeneratorService implements OnModuleDestroy {
             
             const jpgData = await page.screenshot({
                 type: 'jpeg',
-                quality: 90, // JPG quality (0-100)
+                quality: 100, // JPG quality (0-100)
                 fullPage: true,
                 encoding: 'binary'
             });
