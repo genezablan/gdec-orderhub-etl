@@ -16,7 +16,8 @@ async function bootstrap() {
             'http://127.0.0.1:8000',
             'https://master.d1z7pef7x2nh92.amplifyapp.com',
             'https://master.d2gn6xxesc0itl.amplifyapp.com', // Fixed: HTTPS instead of HTTP
-            'https://dwqh4uem5zqma.cloudfront.net' // Added CloudFront domain
+            'https://dwqh4uem5zqma.cloudfront.net',
+            'https://tiktok.rezipt.com' // Added CloudFront domain
         ],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         allowedHeaders: [
