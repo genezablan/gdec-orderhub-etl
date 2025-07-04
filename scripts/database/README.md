@@ -72,3 +72,51 @@ The migration scripts handle:
 - Index creation
 - Constraint management
 - Rollback capabilities
+
+## Admin User Setup
+
+### Initial Admin Creation Scripts
+
+#### `create-initial-admin.sql`
+Creates a single admin user with email `gm.zablan@greatdealscorp.com`.
+
+**Usage:**
+```bash
+psql -h your-db-host -U your-username -d your-database -f create-initial-admin.sql
+```
+
+#### `setup-admin-users.sql`
+More comprehensive script for setting up multiple admin users. Currently configured to create the same admin user, but can be easily extended.
+
+**Usage:**
+```bash
+psql -h your-db-host -U your-username -d your-database -f setup-admin-users.sql
+```
+
+### Prerequisites for Admin Setup
+
+Before running admin setup scripts:
+1. Generate and run TypeORM migrations for the `users` and `access_requests` tables
+2. Ensure database connection is properly configured
+3. Have proper database credentials
+
+### Admin User Capabilities
+
+The created admin user will be able to:
+- Log in using passwordless authentication with the email `gm.zablan@greatdealscorp.com`
+- Access all admin endpoints
+- Approve/reject access requests
+- Manage users
+- View system statistics
+
+### Verification
+
+After running the script, verify the admin user was created:
+
+```sql
+SELECT email, role, status FROM users WHERE role = 'admin';
+```
+
+### Adding More Admins
+
+To add more admin users, modify the `setup-admin-users.sql` script and add additional entries in the VALUES clause.

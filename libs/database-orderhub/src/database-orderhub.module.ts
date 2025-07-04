@@ -4,10 +4,14 @@ import { DatabaseOrderhubService } from './database-orderhub.service';
 import { TiktokOrderService } from './tiktok_order/tiktok_order.service';
 import { TiktokOrderItemService } from './tiktok_order_item/tiktok_order_item.service';
 import { SalesInvoiceService } from './sales_invoice/sales_invoice.service';
+import { UserService } from './user/user.service';
+import { AccessRequestService } from './access_request/access_request.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TiktokOrder } from './tiktok_order/tiktok_order.entity';
 import { TiktokOrderItem } from './tiktok_order_item/tiktok_order_item.entity';
 import { SalesInvoice } from './sales_invoice/sales_invoice.entity';
+import { User } from './user/user.entity';
+import { AccessRequest } from './access_request/access_request.entity';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -25,19 +29,23 @@ import databaseConfig from './config/database.config';
             },
             inject: [ConfigService],
         }),
-        TypeOrmModule.forFeature([TiktokOrder, TiktokOrderItem, SalesInvoice], 'orderhubConnection'),
+        TypeOrmModule.forFeature([TiktokOrder, TiktokOrderItem, SalesInvoice, User, AccessRequest], 'orderhubConnection'),
     ],
     providers: [
         DatabaseOrderhubService,
         TiktokOrderService,
         TiktokOrderItemService,
         SalesInvoiceService,
+        UserService,
+        AccessRequestService,
     ],
     exports: [
         DatabaseOrderhubService,
         TiktokOrderService,
         TiktokOrderItemService,
         SalesInvoiceService,
+        UserService,
+        AccessRequestService,
         ConfigModule,
         TypeOrmModule,
     ],

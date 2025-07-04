@@ -2,6 +2,8 @@ import { DataSource } from 'typeorm';
 import { TiktokOrder } from './tiktok_order/tiktok_order.entity';
 import { TiktokOrderItem } from './tiktok_order_item/tiktok_order_item.entity';
 import { SalesInvoice } from './sales_invoice/sales_invoice.entity';
+import { User } from './user/user.entity';
+import { AccessRequest } from './access_request/access_request.entity';
 
 // Load environment variables from root .env file
 import * as dotenv from 'dotenv';
@@ -20,7 +22,7 @@ export const AppDataSource = new DataSource({
     username: process.env.ORDERHUB_DB_USERNAME || 'postgres',
     password: String(process.env.ORDERHUB_DB_PASSWORD || ''),
     database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',
-    entities: [TiktokOrder, TiktokOrderItem, SalesInvoice],
+    entities: [TiktokOrder, TiktokOrderItem, SalesInvoice, User, AccessRequest],
     migrations: [path.resolve(__dirname, 'migrations/*.ts')],
     migrationsRun: false,
     synchronize: false, // Should be false in production

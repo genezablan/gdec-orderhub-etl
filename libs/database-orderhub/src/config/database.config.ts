@@ -3,6 +3,8 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { TiktokOrder } from '../tiktok_order/tiktok_order.entity';
 import { TiktokOrderItem } from '../tiktok_order_item/tiktok_order_item.entity';
 import { SalesInvoice } from '../sales_invoice/sales_invoice.entity';
+import { User } from '../user/user.entity';
+import { AccessRequest } from '../access_request/access_request.entity';
 
 export default registerAs(
     'database',
@@ -13,7 +15,7 @@ export default registerAs(
         username: process.env.ORDERHUB_DB_USERNAME || 'postgres',
         password: process.env.ORDERHUB_DB_PASSWORD || '',
         database: process.env.ORDERHUB_DB_NAME || 'orderhub-develop',
-        entities: [TiktokOrder, TiktokOrderItem, SalesInvoice],
+        entities: [TiktokOrder, TiktokOrderItem, SalesInvoice, User, AccessRequest],
         synchronize: false,
         logging: false,
         // Don't include migrations in the runtime configuration to avoid ES module issues

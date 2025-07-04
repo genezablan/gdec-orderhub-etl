@@ -1,0 +1,292 @@
+import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { User, AccessRequest, UserService, AccessRequestService } from '@app/database-orderhub';
+import { UserRole, UserStatus, AccessStatus } from '../enums/roles.enum';
+import { 
+  CreateAccessRequestDto, 
+  ProcessAccessRequestDto, 
+  CreateUserDto, 
+  UpdateUserDto, 
+  UpdateUserStatusDto 
+} from '../dto/access-control.dto';
+
+export interface AccessCheckResult {
+  hasAccess: boolean;
+  user?: User;
+  accessRequest?: AccessRequest;
+  message: string;
+}
+
+@Injectable()
+export class AccessControlService {
+  constructor(
+    private readonly userService: UserService,
+    private readonly accessRequestService: AccessRequestService,
+  ) {}
+
+  /**
+   * Check if an email has access to the application
+   */
+  async checkAccess(email: string): Promise<AccessCheckResult> {
+    // First check if user exists and has access
+    const user = await this.userService.findByEmail(email);
+    
+    if (user) {
+      if (user.canAccess) {
+        return {
+          hasAccess: true,
+          user,
+          message: 'User has active access'
+        };
+      } else {
+        return {
+          hasAccess: false,
+          user,
+          message: `User exists but access is ${user.status === UserStatus.ACTIVE ? 'pending approval' : user.status}`
+        };
+      }
+    }
+
+    // Check if there's a pending access request
+    const accessRequest = await this.accessRequestService.findByEmail(email);
+
+    if (accessRequest) {
+      return {
+        hasAccess: false,
+        accessRequest,
+        message: `Access request is ${accessRequest.status}`
+      };
+    }
+
+    // No user and no access request
+    return {
+      hasAccess: false,
+      message: 'No access. User can request access.'
+    };
+  }
+
+  /**
+   * Create a new access request
+   */
+  async requestAccess(createAccessRequestDto: CreateAccessRequestDto): Promise<AccessRequest> {
+    const { email } = createAccessRequestDto;
+
+    // Check if user already exists
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new ConflictException('User already exists in the system');
+    }
+
+    // Check if access request already exists
+    const existingRequest = await this.accessRequestRepository.findOne({ where: { email } });
+    if (existingRequest) {
+      if (existingRequest.isPending) {
+        throw new ConflictException('Access request already exists and is pending');
+      } else if (existingRequest.status === AccessStatus.REJECTED) {
+        // Allow re-request if previously rejected
+        existingRequest.status = AccessStatus.PENDING;
+        existingRequest.processedAt = undefined;
+        existingRequest.processedBy = undefined;
+        existingRequest.adminNotes = undefined;
+        return await this.accessRequestRepository.save(existingRequest);
+      } else {
+        throw new ConflictException('Access request was already approved');
+      }
+    }
+
+    // Create new access request
+    const accessRequest = this.accessRequestRepository.create({
+      email,
+      status: AccessStatus.PENDING
+    });
+
+    return await this.accessRequestRepository.save(accessRequest);
+  }
+
+  /**
+   * Get all pending access requests (Admin only)
+   */
+  async getPendingAccessRequests(): Promise<AccessRequest[]> {
+    return await this.accessRequestRepository.find({
+      where: { status: AccessStatus.PENDING },
+      order: { createdAt: 'ASC' }
+    });
+  }
+
+  /**
+   * Get all access requests (Admin only)
+   */
+  async getAllAccessRequests(): Promise<AccessRequest[]> {
+    return await this.accessRequestRepository.find({
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  /**
+   * Process an access request (Admin only)
+   */
+  async processAccessRequest(
+    requestId: string, 
+    processDto: ProcessAccessRequestDto, 
+    adminEmail: string
+  ): Promise<AccessRequest> {
+    const accessRequest = await this.accessRequestRepository.findOne({ 
+      where: { id: requestId } 
+    });
+
+    if (!accessRequest) {
+      throw new NotFoundException('Access request not found');
+    }
+
+    if (!accessRequest.isPending) {
+      throw new BadRequestException('Access request has already been processed');
+    }
+
+    // Update access request
+    accessRequest.status = processDto.status;
+    accessRequest.adminNotes = processDto.adminNotes || undefined;
+    accessRequest.processedBy = adminEmail;
+    accessRequest.processedAt = new Date();
+
+    const savedRequest = await this.accessRequestRepository.save(accessRequest);
+
+    // If approved, create user account
+    if (processDto.status === AccessStatus.APPROVED) {
+      const userData: CreateUserDto = {
+        email: accessRequest.email,
+        role: processDto.assignedRole || UserRole.USER,
+        status: UserStatus.ACTIVE,
+        notes: `Approved from access request. ${processDto.adminNotes || ''}`
+      };
+
+      await this.createUser(userData, adminEmail);
+    }
+
+    return savedRequest;
+  }
+
+  /**
+   * Create a new user (Admin only)
+   */
+  async createUser(createUserDto: CreateUserDto, adminEmail?: string): Promise<User> {
+    const { email } = createUserDto;
+
+    // Check if user already exists
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    if (existingUser) {
+      throw new ConflictException('User already exists');
+    }
+
+    const user = this.userRepository.create({
+      ...createUserDto,
+      approvedBy: adminEmail,
+      approvedAt: new Date()
+    });
+
+    return await this.userRepository.save(user);
+  }
+
+  /**
+   * Get all users (Admin only)
+   */
+  async getAllUsers(): Promise<User[]> {
+    return await this.userRepository.find({
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  /**
+   * Get user by ID (Admin only)
+   */
+  async getUserById(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  /**
+   * Get user by email
+   */
+  async getUserByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { email } });
+  }
+
+  /**
+   * Find user by email (used by guards)
+   */
+  async findUserByEmail(email: string): Promise<User | null> {
+    return await this.userRepository.findOne({ where: { email } });
+  }
+
+  /**
+   * Update user (Admin only)
+   */
+  async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.getUserById(id);
+    
+    Object.assign(user, updateUserDto);
+    
+    return await this.userRepository.save(user);
+  }
+
+  /**
+   * Update user status (Admin only)
+   */
+  async updateUserStatus(id: string, updateStatusDto: UpdateUserStatusDto): Promise<User> {
+    const user = await this.getUserById(id);
+    
+    user.status = updateStatusDto.status;
+    if (updateStatusDto.notes) {
+      user.notes = updateStatusDto.notes;
+    }
+    
+    return await this.userRepository.save(user);
+  }
+
+  /**
+   * Delete user (Admin only)
+   */
+  async deleteUser(id: string): Promise<void> {
+    const user = await this.getUserById(id);
+    await this.userRepository.remove(user);
+  }
+
+  /**
+   * Get access statistics (Admin only)
+   */
+  async getAccessStats() {
+    const [
+      totalUsers,
+      activeUsers,
+      pendingUsers,
+      totalRequests,
+      pendingRequests,
+      approvedRequests,
+      rejectedRequests
+    ] = await Promise.all([
+      this.userRepository.count(),
+      this.userRepository.count({ where: { status: UserStatus.ACTIVE } }),
+      this.userRepository.count({ where: { role: UserRole.PENDING } }),
+      this.accessRequestRepository.count(),
+      this.accessRequestRepository.count({ where: { status: AccessStatus.PENDING } }),
+      this.accessRequestRepository.count({ where: { status: AccessStatus.APPROVED } }),
+      this.accessRequestRepository.count({ where: { status: AccessStatus.REJECTED } })
+    ]);
+
+    return {
+      users: {
+        total: totalUsers,
+        active: activeUsers,
+        pending: pendingUsers,
+        inactive: totalUsers - activeUsers
+      },
+      requests: {
+        total: totalRequests,
+        pending: pendingRequests,
+        approved: approvedRequests,
+        rejected: rejectedRequests
+      }
+    };
+  }
+}

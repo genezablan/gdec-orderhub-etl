@@ -41,15 +41,39 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     try {
       console.log('JWT Payload received:', payload); // Debug log
       
-      // For Cognito access tokens
-      if (payload.token_use === 'access') {
+      // For Cognito ID tokens (contains email and user profile)
+      if (payload.token_use === 'id') {
+        if (!payload.email) {
+          throw new UnauthorizedException({
+            message: 'ID token missing email field',
+            error: 'Unauthorized',
+            statusCode: 401,
+            code: 'MISSING_EMAIL'
+          });
+        }
+        
         return {
           sub: payload.sub,
-          username: payload.username,
+          email: payload.email,
+          username: payload['cognito:username'] || payload.username,
+          firstName: payload.given_name,
+          lastName: payload.family_name,
           clientId: payload.client_id,
           cognito: true,
-          scopes: payload.scope ? payload.scope.split(' ') : [],
+          tokenType: 'id',
         };
+      }
+      
+      // For Cognito access tokens (no email - should use ID tokens instead)
+      if (payload.token_use === 'access') {
+        console.warn('Access token received but ID token is required for user authentication. Please use ID token from frontend.');
+        throw new UnauthorizedException({
+          message: 'Invalid token type. Please use ID token for authentication.',
+          error: 'Unauthorized',
+          statusCode: 401,
+          code: 'INVALID_TOKEN_TYPE',
+          details: 'Access tokens do not contain user profile information. Use ID tokens for authentication.'
+        });
       }
 
       // For other JWT tokens (if you have custom ones)
