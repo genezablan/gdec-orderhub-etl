@@ -9,6 +9,7 @@ import {
     GetSupportOrderDetailsQueryDto,
     GetSalesInvoicesQueryDto,
 } from '@app/contracts/tiktok-fetcher/dto/';
+import { UpdateSalesInvoiceDto } from '@app/contracts/database-orderhub';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Readable } from 'stream';
 import { IsString, IsOptional, ValidateNested } from 'class-validator';
@@ -62,17 +63,6 @@ export class ShippingAddressDto {
     fullAddress: string;
 }
 
-// DTO for updating sales invoice
-export class UpdateSalesInvoiceDto {
-    @ValidateNested()
-    @Type(() => BillingAddressDto)
-    billingAddress: BillingAddressDto;
-
-    @IsOptional()
-    @ValidateNested()
-    @Type(() => ShippingAddressDto)
-    shippingAddress?: ShippingAddressDto;
-}
 @Controller('tiktok')
 export class TiktokController {
     private s3Client: S3Client;

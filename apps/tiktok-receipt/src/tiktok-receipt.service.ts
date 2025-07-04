@@ -535,24 +535,42 @@ export class TiktokReceiptService {
         try {
             this.logger.log(`Updating file path for sales invoice ${salesInvoiceId} to: ${newFilePath}`, 'TiktokReceiptService');
             
-            // Prepare update data
-            const updateData: any = {
+            // Prepare update data with proper typing
+            const updateData = {
                 filePath: newFilePath,
                 generatedAt: new Date() // Update generation timestamp
             };
             
             // Update invoice content if provided (for reprint with fresh data)
             if (updatedReceiptDto) {
-                updateData.invoiceContent = updatedReceiptDto;
+                updateData['invoiceContent'] = updatedReceiptDto;
             }
             
-            // Use the proper update method instead of creating a new record
-            await this.salesInvoiceService.updateSalesInvoice(salesInvoiceId, updateData);
+            // Use the proper update method and handle the new response format
+            const result = await this.salesInvoiceService.updateSalesInvoice(salesInvoiceId, updateData);
             
-            this.logger.log(
-                `Successfully updated file path for sales invoice ${salesInvoiceId}`, 
-                'TiktokReceiptService'
-            );
+            // Check if the update was successful
+            if (!result.invoice) {
+                throw new Error(`Sales invoice not found with id: ${salesInvoiceId}`);
+            }
+            
+            // Log different scenarios
+            if (result.wasAlreadyUnmasked) {
+                this.logger.log(
+                    `Sales invoice ${salesInvoiceId} customer data was already unmasked, but file path updated successfully to: ${newFilePath}`,
+                    'TiktokReceiptService'
+                );
+            } else if (result.containsMaskedData) {
+                this.logger.warn(
+                    `Sales invoice ${salesInvoiceId} contains masked data in fields: ${result.maskedFields.join(', ')}, but file path updated to: ${newFilePath}`,
+                    'TiktokReceiptService'
+                );
+            } else {
+                this.logger.log(
+                    `Successfully updated file path for sales invoice ${salesInvoiceId} to: ${newFilePath}`,
+                    'TiktokReceiptService'
+                );
+            }
         } catch (error) {
             this.logger.error(
                 `Failed to update file path for sales invoice ${salesInvoiceId}`, 

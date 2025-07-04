@@ -131,6 +131,16 @@ export class SalesInvoice {
     @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
     updatedAt: Date;
 
+    // Unmasking tracking fields
+    @Column({ name: 'is_unmasked', type: 'boolean', default: false })
+    isUnmasked: boolean;
+
+    @Column({ name: 'unmasked_at', type: 'timestamp', nullable: true })
+    unmaskedAt: Date;
+
+    @Column({ name: 'unmasking_status', type: 'varchar', default: 'masked' })
+    unmaskingStatus: string; // 'masked' | 'unmasked' | 'processing'
+
     // Relation to TiktokOrder
     @ManyToOne(() => TiktokOrder, {
         onDelete: 'CASCADE',

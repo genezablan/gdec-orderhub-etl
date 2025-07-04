@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SalesInvoice } from './sales_invoice.entity';
-import { SalesInvoiceDto } from '@app/contracts/database-orderhub/sales_invoice.dto';
+import { SalesInvoiceDto, UpdateSalesInvoiceDto } from '@app/contracts/database-orderhub';
 
 @Injectable()
 export class SalesInvoiceService {
@@ -12,6 +12,60 @@ export class SalesInvoiceService {
         @InjectRepository(SalesInvoice, 'orderhubConnection')
         private readonly repo: Repository<SalesInvoice>
     ) {}
+
+    /**
+     * Check if a string contains masked data (asterisks or other masking patterns)
+     */
+    private isMaskedData(value: string): boolean {
+        if (!value || typeof value !== 'string') {
+            return false;
+        }
+        
+        // Check for common masking patterns
+        return (
+            value.includes('***') ||
+            value.includes('****') ||
+            value.includes('*****') ||
+            /^\*+$/.test(value) || // Only asterisks
+            /\*{3,}/.test(value) || // 3 or more consecutive asterisks
+            value.includes('XXX') ||
+            value.includes('XXXX') ||
+            /^X+$/.test(value) || // Only X's
+            value.trim() === '' || // Empty or whitespace only
+            value.toLowerCase().includes('masked') ||
+            value.toLowerCase().includes('hidden')
+        );
+    }
+
+    /**
+     * Check if the update data contains any masked fields
+     */
+    private containsMaskedData(updateData: UpdateSalesInvoiceDto): { hasMaskedData: boolean; maskedFields: string[] } {
+        const maskedFields: string[] = [];
+
+        if (updateData.billingAddress) {
+            if (updateData.billingAddress.fullName && this.isMaskedData(updateData.billingAddress.fullName)) {
+                maskedFields.push('billingAddress.fullName');
+            }
+            if (updateData.billingAddress.fullAddress && this.isMaskedData(updateData.billingAddress.fullAddress)) {
+                maskedFields.push('billingAddress.fullAddress');
+            }
+            if (updateData.billingAddress.taxIdentificationNumber && this.isMaskedData(updateData.billingAddress.taxIdentificationNumber)) {
+                maskedFields.push('billingAddress.taxIdentificationNumber');
+            }
+        }
+
+        if (updateData.shippingAddress) {
+            if (updateData.shippingAddress.fullAddress && this.isMaskedData(updateData.shippingAddress.fullAddress)) {
+                maskedFields.push('shippingAddress.fullAddress');
+            }
+        }
+
+        return {
+            hasMaskedData: maskedFields.length > 0,
+            maskedFields
+        };
+    }
 
     async create(data: Partial<SalesInvoiceDto>): Promise<SalesInvoice | null> {
         this.logger.log(`Creating sales invoice: ${JSON.stringify(data)}`);
@@ -92,7 +146,13 @@ export class SalesInvoiceService {
         }
     }
 
-    async updateSalesInvoice(id: string, updateData: any): Promise<SalesInvoice | null> {
+    async updateSalesInvoice(id: string, updateData: UpdateSalesInvoiceDto): Promise<{ 
+        invoice: SalesInvoice | null; 
+        wasAlreadyUnmasked: boolean; 
+        containsMaskedData: boolean;
+        maskedFields: string[];
+        message: string;
+    }> {
         this.logger.log(`Updating sales invoice ${id} with data: ${JSON.stringify(updateData)}`);
         try {
             // Find the sales invoice by ID
@@ -100,8 +160,47 @@ export class SalesInvoiceService {
             
             if (!existingInvoice) {
                 this.logger.warn(`Sales invoice not found with id: ${id}`);
-                return null;
+                return {
+                    invoice: null,
+                    wasAlreadyUnmasked: false,
+                    containsMaskedData: false,
+                    maskedFields: [],
+                    message: 'Sales invoice not found'
+                };
             }
+
+            // Check if the invoice is already unmasked AND we're trying to update customer data
+            if (existingInvoice.isUnmasked && (updateData.billingAddress || updateData.shippingAddress)) {
+                this.logger.log(`Sales invoice ${id} is already unmasked and trying to update customer data. Skipping customer data update.`);
+                return {
+                    invoice: existingInvoice,
+                    wasAlreadyUnmasked: true,
+                    containsMaskedData: false,
+                    maskedFields: [],
+                    message: 'Sales invoice was already unmasked - customer data update skipped'
+                };
+            }
+
+            // Only check for masked data if we're updating customer data (billing/shipping addresses)
+            if (updateData.billingAddress || updateData.shippingAddress) {
+                const maskedDataCheck = this.containsMaskedData(updateData);
+                if (maskedDataCheck.hasMaskedData) {
+                    this.logger.warn(`Sales invoice ${id} update contains masked data in fields: ${maskedDataCheck.maskedFields.join(', ')}`);
+                    return {
+                        invoice: existingInvoice,
+                        wasAlreadyUnmasked: false,
+                        containsMaskedData: true,
+                        maskedFields: maskedDataCheck.maskedFields,
+                        message: `Update data contains masked fields: ${maskedDataCheck.maskedFields.join(', ')}`
+                    };
+                }
+            }
+
+            // Proceed with updating the sales invoice
+            this.logger.log(`Proceeding with updating sales invoice ${id}`);
+
+            // Track if we're updating customer data (billing/shipping addresses)
+            const isUpdatingCustomerData = !!(updateData.billingAddress || updateData.shippingAddress);
 
             // Update billing address fields if provided
             if (updateData.billingAddress) {
@@ -129,9 +228,6 @@ export class SalesInvoiceService {
                 const updatedShippingAddress = existingInvoice.shippingAddress ? { ...existingInvoice.shippingAddress } : {};
 
                 // Update individual fields in the JSONB shippingAddress object using snake_case
-                if (updateData.shippingAddress.fullName !== undefined) {
-                    updatedShippingAddress.full_name = updateData.shippingAddress.fullName;
-                }
                 if (updateData.shippingAddress.fullAddress !== undefined) {
                     updatedShippingAddress.full_address = updateData.shippingAddress.fullAddress;
                 }
@@ -153,14 +249,35 @@ export class SalesInvoiceService {
                 existingInvoice.invoiceContent = updateData.invoiceContent;
             }
 
+            // Only set unmasking tracking fields if we're actually updating customer data
+            if (isUpdatingCustomerData) {
+                existingInvoice.isUnmasked = true;
+                existingInvoice.unmaskedAt = new Date();
+                existingInvoice.unmaskingStatus = 'unmasked';
+                this.logger.log(`Setting unmasking flags for sales invoice ${id} - customer data updated`);
+            } else {
+                this.logger.log(`Skipping unmasking flags for sales invoice ${id} - only system fields updated`);
+            }
+
             // Update the updated timestamp
             existingInvoice.updatedAt = new Date();
 
             // Save the updated entity
             const updatedInvoice = await this.repo.save(existingInvoice);
-            this.logger.log(`Successfully updated sales invoice ${id}`);
             
-            return updatedInvoice;
+            const message = isUpdatingCustomerData 
+                ? 'Sales invoice successfully unmasked and updated'
+                : 'Sales invoice successfully updated';
+            
+            this.logger.log(`${message}: ${id}`);
+            
+            return {
+                invoice: updatedInvoice,
+                wasAlreadyUnmasked: false,
+                containsMaskedData: false,
+                maskedFields: [],
+                message
+            };
         } catch (error) {
             this.logger.error(
                 `Error updating sales invoice ${id}: ${error.message}`,

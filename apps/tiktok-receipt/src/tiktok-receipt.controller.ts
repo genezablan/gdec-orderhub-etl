@@ -165,19 +165,41 @@ export class TiktokReceiptController {
             console.log(`Updating sales invoice ${params.id} with data:`, params.updateData);
 
             // Update the sales invoice in the database
-            const updatedInvoice = await this.salesInvoiceService.updateSalesInvoice(
+            const result = await this.salesInvoiceService.updateSalesInvoice(
                 params.id,
                 params.updateData
             );
 
-            if (!updatedInvoice) {
+            if (!result.invoice) {
                 throw new RpcException(new NotFoundException(`Sales invoice not found with id: ${params.id}`));
+            }
+
+            // Handle different scenarios based on the result
+            if (result.wasAlreadyUnmasked) {
+                return {
+                    success: true,
+                    message: result.message,
+                    data: result.invoice,
+                    alreadyProcessed: true,
+                    skipReason: 'already_unmasked'
+                };
+            }
+
+            if (result.containsMaskedData) {
+                return {
+                    success: false,
+                    message: result.message,
+                    data: result.invoice,
+                    error: 'masked_data_detected',
+                    maskedFields: result.maskedFields
+                };
             }
 
             return {
                 success: true,
-                message: 'Sales invoice updated successfully',
-                data: updatedInvoice
+                message: result.message,
+                data: result.invoice,
+                unmasked: true
             };
         } catch (error) {
             if (error instanceof RpcException) {
