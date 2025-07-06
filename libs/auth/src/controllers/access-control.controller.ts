@@ -68,7 +68,6 @@ export class AccessControlController {
     console.log('requestAccess - Using email/username:', email);
     return await this.accessControlService.requestAccess({ email });
   }
-  }
 
   // Admin-only endpoints below
   @Get('requests/pending')
