@@ -78,20 +78,36 @@ The migration scripts handle:
 ### Initial Admin Creation Scripts
 
 #### `create-initial-admin.sql`
-Creates a single admin user with email `gm.zablan@greatdealscorp.com`.
+Creates GM Zablan as a super admin user with email `gm.zablan@greatdealscorp.com`.
 
 **Usage:**
 ```bash
 psql -h your-db-host -U your-username -d your-database -f create-initial-admin.sql
 ```
 
+#### `create-super-admin.sql`
+Creates or updates GM Zablan as super admin user who can manage all users including other admins.
+
+**Usage:**
+```bash
+psql -h your-db-host -U your-username -d your-database -f create-super-admin.sql
+```
+
 #### `setup-admin-users.sql`
-More comprehensive script for setting up multiple admin users. Currently configured to create the same admin user, but can be easily extended.
+Comprehensive script for setting up GM Zablan as the super admin user. This is the recommended script to run for initial setup.
 
 **Usage:**
 ```bash
 psql -h your-db-host -U your-username -d your-database -f setup-admin-users.sql
 ```
+
+### Role Hierarchy
+
+The system implements a three-tier role hierarchy:
+
+- **Super Admin** (`super_admin`): Can manage all users including admins
+- **Admin** (`admin`): Can only manage regular users, cannot manage other admins
+- **User** (`user`): Standard application access only
 
 ### Prerequisites for Admin Setup
 
@@ -100,23 +116,34 @@ Before running admin setup scripts:
 2. Ensure database connection is properly configured
 3. Have proper database credentials
 
-### Admin User Capabilities
+### Super Admin User Capabilities
 
-The created admin user will be able to:
+The created super admin user (GM Zablan) will be able to:
 - Log in using passwordless authentication with the email `gm.zablan@greatdealscorp.com`
 - Access all admin endpoints
 - Approve/reject access requests
-- Manage users
+- Manage all users including other admins
+- Create admin and user accounts
 - View system statistics
+- Assign roles (admin or user) to other users
+
+### Admin User Capabilities
+
+Regular admin users can:
+- Access admin endpoints
+- Approve/reject access requests
+- Manage only regular users (not other admins)
+- Create user accounts only
+- View limited system statistics
 
 ### Verification
 
-After running the script, verify the admin user was created:
+After running the script, verify the users were created with correct roles:
 
 ```sql
-SELECT email, role, status FROM users WHERE role = 'admin';
+SELECT email, role, status, job_title FROM users WHERE role IN ('super_admin', 'admin') ORDER BY role;
 ```
 
 ### Adding More Admins
 
-To add more admin users, modify the `setup-admin-users.sql` script and add additional entries in the VALUES clause.
+To add more admin users, modify the `setup-admin-users.sql` script and add additional entries in the VALUES clause. Remember that only super admins can create other admin users through the API.

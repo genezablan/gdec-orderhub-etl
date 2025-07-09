@@ -216,7 +216,7 @@ The entities are located in `@app/database-orderhub` library:
 - `email` (VARCHAR, Unique)
 - `firstName` (VARCHAR, Nullable)
 - `lastName` (VARCHAR, Nullable)
-- `role` (ENUM: admin, user, pending)
+- `role` (ENUM: super_admin, admin, user, pending)
 - `status` (ENUM: active, inactive, suspended)
 - `cognitoUserId` (VARCHAR, Nullable) - For AWS Cognito integration
 - `department` (VARCHAR, Nullable)
@@ -363,3 +363,62 @@ import { User, AccessRequest } from '@app/database-orderhub';
 })
 export class AppModule {}
 ```
+
+## Role Hierarchy
+
+The access control system implements a three-tier role hierarchy:
+
+### Super Admin Role
+- **Access Level**: Highest level access to all system functionality
+- **User Management**: Can manage all users including other admins and super admins
+- **Role Assignment**: Can assign any role except super admin (for security)
+- **Access Requests**: Can process all access requests
+- **Statistics**: Full access to all system statistics
+
+### Admin Role  
+- **Access Level**: Can manage regular users only
+- **User Management**: Can only manage users with "user" or "pending" roles
+- **Role Assignment**: Can only assign "user" role to others
+- **Access Requests**: Can process access requests (assigns "user" role by default)
+- **Statistics**: Access to user statistics within their scope
+- **Restrictions**: Cannot manage other admins or super admins
+
+### User Role
+- **Access Level**: Standard application access
+- **User Management**: No user management capabilities
+- **Role Assignment**: Cannot assign roles
+- **Access Requests**: Can only request access for themselves
+- **Statistics**: No access to administrative statistics
+
+### Role Hierarchy Rules
+
+1. **Super Admin** can manage:
+   - All admins
+   - All regular users
+   - All pending users
+   - Can create users with admin or user roles
+
+2. **Admin** can manage:
+   - Regular users only
+   - Pending users only
+   - Can create users with user role only
+   - Cannot modify other admins or super admins
+
+3. **User** can manage:
+   - No other users
+   - Can only access their own profile information
+
+### Role-Based API Access
+
+All admin endpoints now support both admin and super admin roles:
+
+```typescript
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+```
+
+The system automatically enforces role hierarchy in all user management operations:
+
+- `GET /access-control/users` - Returns only users the current role can manage
+- `PUT /access-control/users/{id}` - Only allows updates to users within scope
+- `DELETE /access-control/users/{id}` - Only allows deletion of users within scope
+- `POST /access-control/users` - Validates role assignment permissions

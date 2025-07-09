@@ -1,6 +1,5 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
-import { User, AccessRequest, UserService, AccessRequestService } from '@app/database-orderhub';
-import { UserRole, UserStatus, AccessStatus } from '../enums/roles.enum';
+import { User, AccessRequest, UserService, AccessRequestService, UserRole, UserStatus, AccessStatus } from '@app/database-orderhub';
 import { 
   CreateAccessRequestDto, 
   ProcessAccessRequestDto, 
@@ -314,5 +313,154 @@ export class AccessControlService {
       hasAccess: false,
       message: 'No access found. User needs to request access with their email address.'
     };
+  }
+
+  /**
+   * Check if user can manage other users based on role hierarchy
+   * Super Admin: Can manage all users (admins and regular users)
+   * Admin: Can only manage regular users (not other admins or super admins)
+   * User: Cannot manage any users
+   */
+  canManageUser(managerRole: UserRole, targetRole: UserRole): boolean {
+    // Super admin can manage everyone
+    if (managerRole === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+    
+    // Admin can only manage regular users (not other admins or super admins)
+    if (managerRole === UserRole.ADMIN) {
+      return targetRole === UserRole.USER || targetRole === UserRole.PENDING;
+    }
+    
+    // Regular users and pending users cannot manage anyone
+    return false;
+  }
+
+  /**
+   * Get users that the current user can manage based on their role
+   */
+  async getUsersForRole(userRole: UserRole): Promise<User[]> {
+    const allUsers = await this.userService.findAll();
+    
+    // Super admin can see all users
+    if (userRole === UserRole.SUPER_ADMIN) {
+      return allUsers;
+    }
+    
+    // Admin can only see regular users and pending users
+    if (userRole === UserRole.ADMIN) {
+      return allUsers.filter(user => 
+        user.role === UserRole.USER || user.role === UserRole.PENDING
+      );
+    }
+    
+    // Regular users cannot see any user management data
+    return [];
+  }
+
+  /**
+   * Check if a user can create another user with the specified role
+   */
+  canCreateUserWithRole(creatorRole: UserRole, targetRole: UserRole): boolean {
+    // Super admin can create any role except another super admin (for security)
+    if (creatorRole === UserRole.SUPER_ADMIN) {
+      return targetRole !== UserRole.SUPER_ADMIN;
+    }
+    
+    // Admin can only create regular users
+    if (creatorRole === UserRole.ADMIN) {
+      return targetRole === UserRole.USER;
+    }
+    
+    // Regular users cannot create any users
+    return false;
+  }
+
+  /**
+   * Get maximum role that a user can assign to others
+   */
+  getMaxAssignableRole(userRole: UserRole): UserRole {
+    if (userRole === UserRole.SUPER_ADMIN) {
+      return UserRole.ADMIN; // Super admin can assign up to admin role
+    }
+    
+    if (userRole === UserRole.ADMIN) {
+      return UserRole.USER; // Admin can only assign user role
+    }
+    
+    return UserRole.PENDING; // Regular users cannot assign roles
+  }
+
+  /**
+   * Enhanced create user method with role hierarchy validation
+   */
+  async createUserWithRoleCheck(
+    createUserDto: CreateUserDto, 
+    adminEmail: string,
+    adminRole: UserRole
+  ): Promise<User> {
+    const { role = UserRole.USER } = createUserDto;
+    
+    // Check if admin can create user with this role
+    if (!this.canCreateUserWithRole(adminRole, role)) {
+      throw new BadRequestException(
+        `You do not have permission to create users with role: ${role}`
+      );
+    }
+    
+    return this.createUser(createUserDto, adminEmail);
+  }
+
+  /**
+   * Enhanced update user method with role hierarchy validation
+   */
+  async updateUserWithRoleCheck(
+    id: string, 
+    updateUserDto: UpdateUserDto,
+    managerEmail: string,
+    managerRole: UserRole
+  ): Promise<User> {
+    const targetUser = await this.userService.findById(id);
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if manager can manage this user
+    if (!this.canManageUser(managerRole, targetUser.role)) {
+      throw new BadRequestException(
+        'You do not have permission to manage this user'
+      );
+    }
+
+    // If updating role, check if manager can assign the new role
+    if (updateUserDto.role && !this.canCreateUserWithRole(managerRole, updateUserDto.role)) {
+      throw new BadRequestException(
+        `You do not have permission to assign role: ${updateUserDto.role}`
+      );
+    }
+
+    return this.updateUser(id, updateUserDto);
+  }
+
+  /**
+   * Enhanced delete user method with role hierarchy validation
+   */
+  async deleteUserWithRoleCheck(
+    id: string,
+    managerRole: UserRole
+  ): Promise<void> {
+    const targetUser = await this.userService.findById(id);
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if manager can manage this user
+    if (!this.canManageUser(managerRole, targetUser.role)) {
+      throw new BadRequestException(
+        'You do not have permission to delete this user'
+      );
+    }
+
+    await this.deleteUser(id);
   }
 }

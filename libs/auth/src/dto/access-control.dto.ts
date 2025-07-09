@@ -1,6 +1,6 @@
 import { IsEmail, IsOptional, IsString, IsEnum, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserRole, UserStatus, AccessStatus } from '../enums/roles.enum';
+import { UserRole, UserStatus, AccessStatus } from '@app/database-orderhub';
 
 // DTOs for Access Requests
 export class CreateAccessRequestDto {

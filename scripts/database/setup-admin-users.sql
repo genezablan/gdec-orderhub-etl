@@ -1,9 +1,9 @@
--- Setup initial admin users
--- This script creates initial admin users for the access control system
+-- Setup initial admin users and super admin
+-- This script creates initial admin users and super admin for the access control system
 
 BEGIN;
 
--- Create initial admin users
+-- Create super admin user (GM Zablan)
 INSERT INTO users (
     id,
     email,
@@ -23,10 +23,10 @@ INSERT INTO users (
         'gm.zablan@greatdealscorp.com',
         'GM',
         'Zablan',
-        'admin',
+        'super_admin',
         'active',
         'Management',
-        'General Manager',
+        'General Manager / Super Administrator',
         'system',
         NOW(),
         NOW(),
@@ -60,7 +60,7 @@ ON CONFLICT (email) DO UPDATE SET
 
 COMMIT;
 
--- Display created admin users
+-- Display created admin users and super admin
 SELECT 
     id,
     email,
@@ -74,5 +74,11 @@ SELECT
     approved_by,
     approved_at
 FROM users 
-WHERE role = 'admin'
-ORDER BY created_at DESC;
+WHERE role IN ('admin', 'super_admin')
+ORDER BY 
+    CASE 
+        WHEN role = 'super_admin' THEN 1 
+        WHEN role = 'admin' THEN 2 
+        ELSE 3 
+    END,
+    created_at DESC;

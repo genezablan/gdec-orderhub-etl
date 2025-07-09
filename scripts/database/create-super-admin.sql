@@ -1,7 +1,7 @@
 -- Create initial super admin user
--- This script creates GM Zablan as a super admin user with email gm.zablan@greatdealscorp.com
+-- This script creates GM Zablan as the super admin user who can manage all users including other admins
 
--- Insert the super admin user
+-- Insert/Update GM Zablan as super admin user
 INSERT INTO users (
     id,
     email,
@@ -37,7 +37,7 @@ INSERT INTO users (
     job_title = 'General Manager / Super Administrator',
     updated_at = NOW();
 
--- Verify the user was created
+-- Verify the super admin user was created/updated
 SELECT 
     id,
     email,

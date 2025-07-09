@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserRole } from '../enums/roles.enum';
+import { UserRole } from '@app/database-orderhub';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { AccessControlService } from '../services/access-control.service';
 

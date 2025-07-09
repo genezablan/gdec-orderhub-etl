@@ -17,8 +17,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
 import { SkipAccessCheck } from '../decorators/skip-access-check.decorator';
 import { User as CurrentUser } from '../decorators/user.decorator';
-import { UserRole } from '../enums/roles.enum';
-import { User, AccessRequest } from '@app/database-orderhub';
+import { UserRole, User, AccessRequest } from '@app/database-orderhub';
 import {
   ProcessAccessRequestDto,
   CreateUserDto,
@@ -72,7 +71,7 @@ export class AccessControlController {
   // Admin-only endpoints below
   @Get('requests/pending')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get all pending access requests (Admin only)' })
   @ApiResponse({ status: 200, description: 'List of pending access requests' })
   async getPendingAccessRequests(): Promise<AccessRequest[]> {
@@ -81,7 +80,7 @@ export class AccessControlController {
 
   @Get('requests')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get all access requests (Admin only)' })
   @ApiResponse({ status: 200, description: 'List of all access requests' })
   async getAllAccessRequests(): Promise<AccessRequest[]> {
@@ -90,7 +89,7 @@ export class AccessControlController {
 
   @Put('requests/:id/process')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Process an access request (Admin only)' })
   @ApiResponse({ status: 200, description: 'Access request processed successfully' })
   @ApiResponse({ status: 404, description: 'Access request not found' })
@@ -104,7 +103,7 @@ export class AccessControlController {
 
   @Post('users')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Create a new user (Admin only)' })
   @ApiResponse({ status: 201, description: 'User created successfully' })
   @ApiResponse({ status: 409, description: 'User already exists' })
@@ -112,71 +111,187 @@ export class AccessControlController {
     @Body() createUserDto: CreateUserDto,
     @CurrentUser() admin: any,
   ): Promise<User> {
-    return await this.accessControlService.createUser(createUserDto, admin.email);
+    const adminUser = await this.accessControlService.findUserByEmail(admin.email);
+    return await this.accessControlService.createUserWithRoleCheck(
+      createUserDto, 
+      admin.email, 
+      adminUser.role
+    );
   }
 
   @Get('users')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all users (Admin only)' })
-  @ApiResponse({ status: 200, description: 'List of all users' })
-  async getAllUsers(): Promise<User[]> {
-    return await this.accessControlService.getAllUsers();
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get users based on role permissions (Admin only)' })
+  @ApiResponse({ status: 200, description: 'List of users that current admin can manage' })
+  async getAllUsers(@CurrentUser() admin: any): Promise<User[]> {
+    const adminUser = await this.accessControlService.findUserByEmail(admin.email);
+    return await this.accessControlService.getUsersForRole(adminUser.role);
   }
 
   @Get('users/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get user by ID (Admin only)' })
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get user by ID with role permission check (Admin only)' })
   @ApiResponse({ status: 200, description: 'User details' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserById(@Param('id') id: string): Promise<User | null> {
-    return await this.accessControlService.getUserById(id);
+  @ApiResponse({ status: 403, description: 'Permission denied to view this user' })
+  async getUserById(
+    @Param('id') id: string,
+    @CurrentUser() admin: any,
+  ): Promise<User | null> {
+    const adminUser = await this.accessControlService.findUserByEmail(admin.email);
+    const targetUser = await this.accessControlService.getUserById(id);
+    
+    if (!targetUser) {
+      return null;
+    }
+    
+    // Check if admin can manage this user
+    if (!this.accessControlService.canManageUser(adminUser.role, targetUser.role)) {
+      throw new Error('You do not have permission to view this user');
+    }
+    
+    return targetUser;
   }
 
   @Put('users/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Update user (Admin only)' })
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Update user with role permission check (Admin only)' })
   @ApiResponse({ status: 200, description: 'User updated successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 403, description: 'Permission denied to update this user' })
   async updateUser(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() admin: any,
   ): Promise<User> {
-    return await this.accessControlService.updateUser(id, updateUserDto);
+    const adminUser = await this.accessControlService.findUserByEmail(admin.email);
+    return await this.accessControlService.updateUserWithRoleCheck(
+      id, 
+      updateUserDto, 
+      admin.email, 
+      adminUser.role
+    );
   }
 
   @Put('users/:id/status')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Update user status (Admin only)' })
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Update user status with role permission check (Admin only)' })
   @ApiResponse({ status: 200, description: 'User status updated successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 403, description: 'Permission denied to update this user' })
   async updateUserStatus(
     @Param('id') id: string,
     @Body() updateStatusDto: UpdateUserStatusDto,
+    @CurrentUser() admin: any,
   ): Promise<User> {
+    const adminUser = await this.accessControlService.findUserByEmail(admin.email);
+    const targetUser = await this.accessControlService.getUserById(id);
+    
+    if (!targetUser) {
+      throw new Error('User not found');
+    }
+    
+    // Check if admin can manage this user
+    if (!this.accessControlService.canManageUser(adminUser.role, targetUser.role)) {
+      throw new Error('You do not have permission to update this user');
+    }
+    
     return await this.accessControlService.updateUserStatus(id, updateStatusDto);
   }
 
   @Delete('users/:id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete user (Admin only)' })
+  @ApiOperation({ summary: 'Delete user with role permission check (Admin only)' })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async deleteUser(@Param('id') id: string): Promise<void> {
-    await this.accessControlService.deleteUser(id);
+  @ApiResponse({ status: 403, description: 'Permission denied to delete this user' })
+  async deleteUser(
+    @Param('id') id: string,
+    @CurrentUser() admin: any,
+  ): Promise<void> {
+    const adminUser = await this.accessControlService.findUserByEmail(admin.email);
+    await this.accessControlService.deleteUserWithRoleCheck(id, adminUser.role);
   }
 
   @Get('stats')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get access control statistics (Admin only)' })
   @ApiResponse({ status: 200, description: 'Access control statistics' })
   async getAccessStats() {
     return await this.accessControlService.getAccessStats();
+  }
+
+  // Super Admin only endpoints
+  @Get('admin-users')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get all admin users (Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'List of all admin users' })
+  @ApiResponse({ status: 403, description: 'Only super admins can access this endpoint' })
+  async getAdminUsers(): Promise<User[]> {
+    const allUsers = await this.accessControlService.getAllUsers();
+    return allUsers.filter(user => 
+      user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN
+    );
+  }
+
+  @Put('admin-users/:id/promote')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Promote user to admin role (Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'User promoted to admin successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 403, description: 'Only super admins can promote users to admin' })
+  async promoteToAdmin(
+    @Param('id') id: string,
+    @CurrentUser() superAdmin: any,
+  ): Promise<User> {
+    const targetUser = await this.accessControlService.getUserById(id);
+    if (!targetUser) {
+      throw new Error('User not found');
+    }
+
+    // Prevent promoting to super admin role through this endpoint
+    if (targetUser.role === UserRole.SUPER_ADMIN) {
+      throw new Error('Cannot modify super admin users');
+    }
+
+    return await this.accessControlService.updateUser(id, { role: UserRole.ADMIN });
+  }
+
+  @Put('admin-users/:id/demote')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Demote admin to user role (Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'Admin demoted to user successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 403, description: 'Only super admins can demote admins' })
+  async demoteAdmin(
+    @Param('id') id: string,
+    @CurrentUser() superAdmin: any,
+  ): Promise<User> {
+    const targetUser = await this.accessControlService.getUserById(id);
+    if (!targetUser) {
+      throw new Error('User not found');
+    }
+
+    // Prevent demoting super admin role through this endpoint
+    if (targetUser.role === UserRole.SUPER_ADMIN) {
+      throw new Error('Cannot modify super admin users');
+    }
+
+    // Only allow demoting admin users
+    if (targetUser.role !== UserRole.ADMIN) {
+      throw new Error('User is not an admin');
+    }
+
+    return await this.accessControlService.updateUser(id, { role: UserRole.USER });
   }
 }
