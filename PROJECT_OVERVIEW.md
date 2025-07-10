@@ -182,3 +182,51 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 6. **"Efficient Order Management"** - Quick search and detailed view of TikTok orders
 
 This system streamlines TikTok order management while eliminating manual work for customer support and maintaining the highest standards of security and customer privacy!
+
+---
+
+## 🏗️ **Tech Stack & Architecture**
+
+### **Architecture Type:**
+- **Monorepo Structure** - Single repository containing multiple applications and shared libraries
+- **Microservices Architecture** - Distributed system with independent, scalable services
+- **Event-Driven Architecture** - Real-time data synchronization and automated workflows
+- **API Gateway Pattern** - Centralized entry point for all client requests
+
+### **Backend Technologies:**
+- **Node.js** - Runtime environment for scalable server-side applications
+- **NestJS** - Progressive Node.js framework with TypeScript support
+- **TypeScript** - Type-safe JavaScript for better code quality and maintainability
+- **PostgreSQL** - Primary relational database for OrderHub and TikTok data
+- **MongoDB** - Document database for Scrooge service data storage
+- **Redis** - In-memory caching and session management
+
+### **Message Broker & Communication:**
+- **TCP Transport** - Direct TCP communication between microservices using NestJS built-in transport
+- **MessagePattern** - RPC-style communication for service-to-service calls
+- **ClientProxy** - Service client proxies for inter-microservice communication
+
+### **Authentication & Security:**
+- **AWS Cognito** - Passwordless authentication and user management
+- **OTP-based Authentication** - One-time password verification via email
+- **JWT Tokens** - Secure session management and API authorization
+- **Role-Based Access Control (RBAC)** - Granular permission management
+
+### **External Integrations:**
+- **TikTok Seller Center API** - Real-time order data synchronization
+- **AWS SES** - Email service for OTP delivery and notifications
+- **Puppeteer** - PDF generation service for automated receipt creation
+- **Audit Logging Service** - Comprehensive activity tracking
+
+### **Infrastructure & Deployment:**
+- **Docker** - Containerized application deployment
+- **PM2** - Process management for Node.js applications
+- **Concurrently** - Development environment service orchestration
+- **TypeORM** - Database ORM for PostgreSQL connections
+- **Mongoose** - MongoDB object modeling for Node.js
+
+### **Development & Quality:**
+- **ESLint** - Code quality and consistency enforcement
+- **Jest** - Unit and integration testing framework
+- **Git** - Version control and collaborative development
+- **Prettier** - Code formatting and style consistency
