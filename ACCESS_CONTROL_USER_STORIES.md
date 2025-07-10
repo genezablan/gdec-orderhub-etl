@@ -13,6 +13,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** I can access the TikTok OrderHub system securely  
 
 **Demo Steps:**
+
 1. User visits the TikTok OrderHub application
 2. Enters their @greatdealscorp.com email address
 3. System validates the email domain
@@ -24,6 +25,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** I can authenticate without passwords  
 
 **Demo Steps:**
+
 1. System sends OTP to user's @greatdealscorp.com email
 2. User receives OTP in their email inbox
 3. User enters the OTP in the application
@@ -35,6 +37,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** I know if I can use the system or need to request access  
 
 **Demo Steps:**
+
 1. After successful OTP verification, system checks user access status
 2. If user has access: Redirects to main TikTok OrderHub dashboard
 3. If user has no access: Shows access denied message with request option
@@ -46,6 +49,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** I can start using the order management features  
 
 **Demo Steps:**
+
 1. User without access sees "Request Access" button
 2. User clicks to submit access request
 3. System creates access request with user's email
@@ -58,6 +62,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** authorized team members can use the TikTok OrderHub system  
 
 **Demo Steps:**
+
 1. Super admin/admin logs into the system
 2. Navigates to "Pending Access Requests" section
 3. Reviews user details and request information
@@ -75,6 +80,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** I can find specific TikTok orders quickly and accurately  
 
 **Demo Steps:**
+
 1. User accesses the order search interface
 2. Enters order number in search field
 3. Selects specific TikTok shop from dropdown menu
@@ -88,6 +94,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** I can see accurate and up-to-date order information  
 
 **Demo Steps:**
+
 1. User selects an order from search results
 2. System displays detailed order information sourced from TikTok Seller Center:
    - Order number and TikTok reference
@@ -109,6 +116,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** professional documentation is ready without manual intervention  
 
 **Demo Steps:**
+
 1. User searches for TikTok orders
 2. System automatically detects orders with "Delivered" or "Completed" status
 3. For qualifying orders without existing receipts, system automatically:
@@ -130,7 +138,8 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 **So that** I can provide accurate documentation while maintaining data privacy  
 
 **Demo Steps:**
-1. User selects an existing receipt for reprinting
+
+1. User selects an existing receipt for reprinting 
 2. To enable reprinting, user must first unmask required information:
    - TIN (Tax Identification Number)
    - Complete billing address information
