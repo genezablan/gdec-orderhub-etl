@@ -5,7 +5,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 
 ---
 
-## 🎯 **Epic 1: User Authentication and Access Control**
+## **Epic 1: User Authentication and Access Control**
 
 ### User Story 1.1: Corporate Email Login
 **As a** user  
@@ -72,7 +72,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 
 ---
 
-## 🎯 **Epic 2: TikTok Order Search and Management**
+## **Epic 2: TikTok Order Search and Management**
 
 ### User Story 2.1: Order Search with TikTok Shop Selection
 **As a** user  
@@ -108,7 +108,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 
 ---
 
-## 🎯 **Epic 3: Automated Receipt Generation**
+## **Epic 3: Automated Receipt Generation**
 
 ### User Story 3.1: Automatic Receipt Generation for Completed Orders
 **As a** user  
@@ -130,7 +130,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 
 ---
 
-## 🎯 **Epic 4: Receipt Reprinting with Data Unmasking**
+## **Epic 4: Receipt Reprinting with Data Unmasking**
 
 ### User Story 4.1: Controlled Receipt Reprinting
 **As a** user  
@@ -152,7 +152,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 
 ---
 
-## 🛡️ **Security and Compliance Features**
+## **Security and Compliance Features**
 
 ### **Authentication Security:**
 - ✅ Corporate email domain validation (@greatdealscorp.com)
@@ -172,7 +172,7 @@ This document outlines the user stories and demo scenarios for the TikTok OrderH
 
 ---
 
-## 🎬 **Key Business Benefits**
+## **Key Business Benefits**
 
 1. **"Secure Access Control"** - Only authorized @greatdealscorp.com users can access the system
 2. **"Real-Time TikTok Integration"** - Always up-to-date order information from TikTok Seller Center
@@ -185,7 +185,7 @@ This system streamlines TikTok order management while eliminating manual work fo
 
 ---
 
-## 🏗️ **Tech Stack & Architecture**
+## **Tech Stack & Architecture**
 
 ### **Architecture Type:**
 - **Monorepo Structure** - Single repository containing multiple applications and shared libraries
