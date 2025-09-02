@@ -5,7 +5,8 @@ import { TiktokOrderItem } from './tiktok_order_item.entity';
 
 @Injectable()
 export class TiktokOrderItemService {
-    private readonly logger = new Logger(TiktokOrderItemService.name);    constructor(
+    private readonly logger = new Logger(TiktokOrderItemService.name);
+    constructor(
         @InjectRepository(TiktokOrderItem, 'orderhubConnection')
         private readonly repo: Repository<TiktokOrderItem>
     ) {}
@@ -83,7 +84,8 @@ export class TiktokOrderItemService {
                     if (
                         entity[key] !== null &&
                         entity[key] !== '' &&
-                        key !== 'updatedAt'
+                        key !== 'updatedAt' &&
+                        key !== 'displayStatus'
                     ) {
                         delete data[key];
                     }

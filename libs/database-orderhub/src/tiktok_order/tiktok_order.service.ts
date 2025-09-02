@@ -6,7 +6,8 @@ import { TiktokOrderDto } from '@app/contracts/database-orderhub/tiktok_order.dt
 
 @Injectable()
 export class TiktokOrderService {
-    private readonly logger = new Logger(TiktokOrderService.name);    constructor(
+    private readonly logger = new Logger(TiktokOrderService.name);
+    constructor(
         @InjectRepository(TiktokOrder, 'orderhubConnection')
         private readonly repo: Repository<TiktokOrder>
     ) {}
@@ -51,7 +52,8 @@ export class TiktokOrderService {
                     if (
                         entity[key] !== null &&
                         entity[key] !== '' &&
-                        key !== 'updatedAt'
+                        key !== 'updatedAt' &&
+                        key !== 'status'
                     ) {
                         delete data[key];
                     }
@@ -92,10 +94,13 @@ export class TiktokOrderService {
         addressDetailUnmasked?: string;
         tin?: string;
     }) {
-        this.logger.log(`Updating unmasked details for order: ${params.shopId}_${params.orderId}`);
-        
+        this.logger.log(
+            `Updating unmasked details for order: ${params.shopId}_${params.orderId}`
+        );
+
         try {
-            const updateData: any = {};            if (params.nameUnmasked !== undefined) {
+            const updateData: any = {};
+            if (params.nameUnmasked !== undefined) {
                 updateData.name_unmasked = params.nameUnmasked;
             }
             if (params.addressDetailUnmasked !== undefined) {
@@ -104,26 +109,28 @@ export class TiktokOrderService {
             if (params.tin !== undefined) {
                 updateData.tin = params.tin;
             }
-            
+
             updateData.updatedAt = new Date();
 
             const result = await this.repo.update(
-                { 
-                    shopId: params.shopId, 
-                    orderId: params.orderId 
+                {
+                    shopId: params.shopId,
+                    orderId: params.orderId,
                 },
                 updateData
             );
 
             if (result.affected === 0) {
-                throw new Error(`Order not found for shopId: ${params.shopId}, orderId: ${params.orderId}`);
+                throw new Error(
+                    `Order not found for shopId: ${params.shopId}, orderId: ${params.orderId}`
+                );
             }
 
             return await this.repo.findOne({
-                where: { 
-                    shopId: params.shopId, 
-                    orderId: params.orderId 
-                }
+                where: {
+                    shopId: params.shopId,
+                    orderId: params.orderId,
+                },
             });
         } catch (error) {
             this.logger.error(
@@ -134,22 +141,29 @@ export class TiktokOrderService {
         }
     }
 
-    async findOrderWithUnmaskedDetails(where: { shopId: string; orderId: string }) {
-        this.logger.log(`Finding order with unmasked details: ${JSON.stringify(where)}`);
-        
-        try {            return await this.repo.findOne({
+    async findOrderWithUnmaskedDetails(where: {
+        shopId: string;
+        orderId: string;
+    }) {
+        this.logger.log(
+            `Finding order with unmasked details: ${JSON.stringify(where)}`
+        );
+
+        try {
+            return await this.repo.findOne({
                 where: {
                     shopId: where.shopId,
-                    orderId: where.orderId
-                },                select: [
+                    orderId: where.orderId,
+                },
+                select: [
                     'id',
-                    'shopId', 
+                    'shopId',
                     'orderId',
                     'name_unmasked',
-                    'addressDetailUnmasked', 
+                    'addressDetailUnmasked',
                     'tin',
-                    'updatedAt'
-                ]
+                    'updatedAt',
+                ],
             });
         } catch (error) {
             this.logger.error(

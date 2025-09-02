@@ -32,6 +32,7 @@ export class OrderDetailsController {
                     shopId: order.shopId,
                 };
                 const updateOrder = { ...order, updatedAt: new Date() };
+
                 const existingOrder =
                     await this.tiktokOrderService.findOne(whereOrder);
                 if (existingOrder) {
@@ -39,7 +40,8 @@ export class OrderDetailsController {
                     for (const key of Object.keys(updateOrder)) {
                         if (
                             existingOrder[key] !== null &&
-                            key !== 'updatedAt'
+                            key !== 'updatedAt' &&
+                            key !== 'status'
                         ) {
                             delete updateOrder[key];
                         }
@@ -67,7 +69,8 @@ export class OrderDetailsController {
                             for (const key of Object.keys(updateItem)) {
                                 if (
                                     existingItem[key] !== null &&
-                                    key !== 'updatedAt'
+                                    key !== 'updatedAt' &&
+                                    key !== 'displayStatus'
                                 ) {
                                     delete updateItem[key];
                                 }
